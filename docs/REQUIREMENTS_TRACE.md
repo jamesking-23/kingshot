@@ -3,7 +3,7 @@
 Single progress ledger. Status values: not started, implemented, unit-verified, device-verified, blocked.
 `*` after a phase = **my interpretation**, not stated in the blueprint. "unscheduled" = named under "Later" in the feature matrix but in no roadmap phase until you assign one.
 "Evidence" says "prototype partial" where the Camera Lab touches a row; that is not implementation evidence (nothing is linted, unit-tested or run on a device), so status stays "not started".
-CI evidence rows are marked unverified until the first green run is linked.
+CI-gate rows (P6, X2) are "implemented": the gate exists and ran green on the prototype, which declares only CAMERA.
 
 | ID | Blueprint § | Requirement | Phase | Module | Tests | Status | Evidence |
 |---|---|---|---|---|---|---|---|
@@ -12,7 +12,7 @@ CI evidence rows are marked unverified until the first green run is linked.
 | P3 | 2 | Preservation: never silently overwrite a source capture; original-plus-rendered | 2 | media | pairing and no-overwrite tests + instrumented MediaStore | not started | - |
 | P4 | 2 | Capability-aware UI: controls only when the active camera supports them | 1 | capabilities, UI | registry fixture tests; Compose UI tests | not started | - |
 | P5 | 2 | Fast default path: open, one tap, saved photo | 1 | UI, capture | cold-start-to-first-frame benchmark | not started | - |
-| P6 | 2 | Privacy: local by default; AI/cloud only by explicit opt-in | 0 | all | CI merged-manifest INTERNET gate | not started | CI step added; unverified until first run |
+| P6 | 2 | Privacy: local by default; AI/cloud only by explicit opt-in | 0 | all | CI merged-manifest INTERNET gate | implemented | CI gate green on prototype: https://github.com/jamesking-23/kingshot/actions/runs/39317677036 |
 | P7 | 2 | Incremental engineering: prove pipeline before AI and video | all | - | phase gates | not started | - |
 | FM01 | 3 (Capture / MVP) | Photo, JPEG, DNG when supported, lens discovery | 1 (DNG: 2) | capture, raw, capabilities | per phase | not started | prototype partial: PROTOTYPE_AUDIT #1-4 |
 | FM02 | 3 (Capture / Later) | Burst | unscheduled | capture | - | not started | - |
@@ -97,7 +97,7 @@ CI evidence rows are marked unverified until the first green run is linked.
 | PH3 | 9 | Phase 3: Rendering and computational: RAW renderer, pairing, HDR/denoise experiments, benchmarks | 3 | - | phase report + gate | not started | - |
 | PH4 | 9 | Phase 4: Advanced camera and video | 4 | - | phase report + gate | not started | - |
 | X1 | prompt s3 | No model-specific feature claim without official spec page supplied by owner | all | - | copy review | not started | - |
-| X2 | prompt s4 | Minimum permissions: CAMERA only until geotagging/video need more; geotag opt-in | all | - | manifest gate | not started | CI step added; unverified until first run |
+| X2 | prompt s4 | Minimum permissions: CAMERA only until geotagging/video need more; geotag opt-in | all | - | manifest gate | implemented | CI gate green on prototype: https://github.com/jamesking-23/kingshot/actions/runs/39317677036 |
 | X3 | prompt s7 | Accessibility: TalkBack labels, 48dp targets, large fonts, portrait+landscape, one-handed shutter | 1 | UI | Compose UI tests | not started | - |
-| X4 | prompt s7 | ktlint, detekt, Android lint clean in CI | 0 | build | CI | not started | lint in CI; ktlint/detekt not yet configured |
+| X4 | prompt s7 | ktlint, detekt, Android lint clean in CI | 0 | build | CI | not started | Android lint green in CI (https://github.com/jamesking-23/kingshot/actions/runs/39317677036); ktlint/detekt not yet configured |
 | X5 | prompt s9 | Release readiness: name clearance, privacy policy, signed release, store text | on request | - | checklist | not started | - |
