@@ -1,4 +1,4 @@
-name: Build APK
+name: CI
 
 on:
   push:
@@ -18,11 +18,26 @@ jobs:
           java-version: 17
 
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+      - name: Lint, unit tests, assemble
+        run: ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace
+
+      - name: Privacy gate - merged manifest must not request INTERNET
+        run: |
+          M=$(find app/build -path '*merged_manifest*' -name AndroidManifest.xml | head -n1)
+          echo "Checking $M"
+          test -n "$M"
+          if grep -q 'android.permission.INTERNET' "$M"; then
+            echo "FAIL: INTERNET permission found in merged manifest"; exit 1
+          fi
+          echo "Permissions declared:"; grep -o 'uses-permission[^/]*' "$M"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:

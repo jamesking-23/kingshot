@@ -1,0 +1,9 @@
+# Versions below are the ones the CI build has proven to work (Oct 2026, prototype).
+# They have NOT yet been checked against "current stable"; see docs/ROADMAP.md task P0-01.
+[versions]
+agp = "8.5.2"
+kotlin = "1.9.24"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
