@@ -43,7 +43,7 @@ class ArchitectureTest {
         val pure = listOf(
             "capabilities", "profiles"
         ).flatMap { filesOf(it) } + listOf(
-            "capture/StillRequestPlanner.kt", "capture/CaptureIds.kt", "capture/ReceiptAssembler.kt",
+            "capture/StillRequestPlanner.kt", "capture/CaptureIdGenerator.kt", "capture/ReceiptAssembler.kt",
             "raw/TimestampMatcher.kt", "diagnostics/Json.kt", "diagnostics/ProcessingReceipt.kt",
             "diagnostics/CapabilityReport.kt", "diagnostics/CaptureLog.kt"
         ).map { File(root, it) }
