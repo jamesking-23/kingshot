@@ -269,7 +269,8 @@ class StillCaptureOrchestrator(
             val name = "${completed.captureId}.dng"
             when (val r = saver.saveImage(name, "image/x-adobe-dng") { out -> DngWriter.write(chars, completed.result, image.image, exif, out) }) {
                 is SaveResult.Saved -> {
-                    rec.assembler.onOutputSaved(OutputRecord("source_raw", "RAW_SENSOR", r.uri.toString(), "${image.width}x${image.height}", r.bytes), monotonicMs())
+                    val record = OutputRecord("source_raw", "RAW_SENSOR", r.uri.toString(), "${image.width}x${image.height}", r.bytes)
+                    rec.assembler.onOutputSaved(record, monotonicMs())
                     results.lastDngUri = r.uri
                     results.lastDngName = name
                     log.add("Saved DNG Pictures/KingShot/$name (${r.bytes / 1024} KB)")

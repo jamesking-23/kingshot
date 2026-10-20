@@ -226,10 +226,11 @@ class CameraHost(context: Context, private val log: CaptureLog) {
     }
 
     private fun checkSupport(dev: CameraDevice, outputs: List<OutputConfiguration>, executor: Executor): Support = try {
-        val cfg = SessionConfiguration(SessionConfiguration.SESSION_REGULAR, outputs, executor, object : CameraCaptureSession.StateCallback() {
+        val callback = object : CameraCaptureSession.StateCallback() {
             override fun onConfigured(session: CameraCaptureSession) {}
             override fun onConfigureFailed(session: CameraCaptureSession) {}
-        })
+        }
+        val cfg = SessionConfiguration(SessionConfiguration.SESSION_REGULAR, outputs, executor, callback)
         if (dev.isSessionConfigurationSupported(cfg)) Support.SUPPORTED else Support.UNSUPPORTED
     } catch (e: UnsupportedOperationException) {
         Support.UNKNOWN
@@ -318,7 +319,7 @@ class CameraHost(context: Context, private val log: CaptureLog) {
             return
         }
 
-        val cfg = SessionConfiguration(SessionConfiguration.SESSION_REGULAR, outputs, executor, object : CameraCaptureSession.StateCallback() {
+        val callback = object : CameraCaptureSession.StateCallback() {
             override fun onConfigured(s: CameraCaptureSession) {
                 if (gen != generation || state != State.OPEN) {
                     s.close()
@@ -346,7 +347,8 @@ class CameraHost(context: Context, private val log: CaptureLog) {
                     listener?.onSessionProblem("Session configuration failed.")
                 }
             }
-        })
+        }
+        val cfg = SessionConfiguration(SessionConfiguration.SESSION_REGULAR, outputs, executor, callback)
         try {
             dev.createCaptureSession(cfg)
         } catch (e: Exception) {
