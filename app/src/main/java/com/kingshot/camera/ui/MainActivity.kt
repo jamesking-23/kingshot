@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.view.Surface
 import android.view.TextureView
 import android.widget.Button
@@ -53,6 +54,8 @@ class MainActivity : Activity(), LabEvents {
     private var host: CameraHost? = null
     private var orchestrator: StillCaptureOrchestrator? = null
     private var updatingRaw = false
+    private var resumedAtMs = 0L
+    private var firstFrameLogged = false
 
     private val refreshLog = Runnable {
         logView.text = LabState.log.text()
@@ -92,16 +95,20 @@ class MainActivity : Activity(), LabEvents {
         orchestrator = o
         h.start(o)
         o.start()
-        if (textureView.isAvailable) {
-            ensurePermissionThenOpen()
-        } else {
-            textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) = ensurePermissionThenOpen()
-                override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {}
-                override fun onSurfaceTextureDestroyed(st: SurfaceTexture) = true
-                override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
+        resumedAtMs = SystemClock.elapsedRealtime()
+        firstFrameLogged = false
+        textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) = ensurePermissionThenOpen()
+            override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {}
+            override fun onSurfaceTextureDestroyed(st: SurfaceTexture) = true
+            override fun onSurfaceTextureUpdated(st: SurfaceTexture) {
+                if (!firstFrameLogged) {
+                    firstFrameLogged = true
+                    LabState.log.add("Resume to first preview frame: ${SystemClock.elapsedRealtime() - resumedAtMs} ms (includes any permission prompt time).")
+                }
             }
         }
+        if (textureView.isAvailable) ensurePermissionThenOpen()
     }
 
     override fun onPause() {

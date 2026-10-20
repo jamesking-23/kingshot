@@ -23,7 +23,7 @@ The original prototype was replaced by the package structure in docs/ARCHITECTUR
 | 15 | partly: orientation math is unit-tested; landscape stays untested (screen is portrait-locked) |
 | 16 | partly: top-level rear BACKWARD_COMPATIBLE camera is chosen, active physical ID is read from results; assumption pending DV-001 |
 | 19 | addressed (capture ID names; MediaStore never overwrites) |
-| 20 | partly: shutter-to-saved, processing time and thermal status are in receipts; memory and cold start are not |
+| 20 | partly: shutter-to-saved, processing time, thermal status, heap memory and resume-to-first-frame are logged (docs/benchmarks/); process cold start and peak memory are not |
 | 21, 22, 23 | addressed: packages + architecture test; ADR 0001 (minSdk 34); applicationId `com.kingshot.camera` (placeholder) |
 | 24 | open: release build is still debug-signed (Lab only) |
 | 25 | partly: ktlint, Android lint and JVM tests exist; detekt deferred (ADR 0002); no instrumented tests yet |

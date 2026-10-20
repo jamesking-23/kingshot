@@ -13,7 +13,7 @@ Blueprint phases broken into ~1-day tasks. Estimates are not schedules. Each pha
 - P0-07 [done; unverified on device] Diagnostics bundle (report JSON+text, capture logs, one JPEG, one DNG if supported, device/build info) via share sheet / FileProvider (needs your approval if FileProvider adds manifest entries; no new permission).
 - P0-08 [done] Split the prototype into packages per ARCHITECTURE.md; architecture test; reword the "Minimal processing" label.
 - P0-09 [done; fakes-based lifecycle tests not written yet] Lifecycle hardening (open races, reader close ordering, surface release) with fakes-based tests.
-- P0-10 [partial: shutter-to-saved, processing time and thermal logged in receipts; memory and cold-start not yet] Latency/thermal/cold-start logging hooks.
+- P0-10 [done for Phase 0: shutter-to-saved, processing time, thermal, heap memory, resume-to-first-frame logged; process cold start and peak memory need instrumented benchmarks (Phase 1)] Latency/thermal/cold-start logging hooks.
 - P0-11 [done] docs/phase0/PROTOCOL.md, scoring CSV template, REPORT.md template.
 - P0-12 [done: docs/phase0/DEVICE_VALIDATION_REQUESTS.md] Write DV-001 (capability report + one shot, JPEG and DNG, timestamp assumption), DV-002 (NR/Edge OFF honored?), DV-003 (JPEG+RAW session support).
 - **Gate:** [D] your bundles → VALIDATION_LOG.md, fixtures, ADR 0004, and I propose which claims are allowed (and the wording) and which are not.

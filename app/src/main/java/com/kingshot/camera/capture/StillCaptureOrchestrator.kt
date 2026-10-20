@@ -3,6 +3,7 @@ package com.kingshot.camera.capture
 import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.net.Uri
+import android.os.Debug
 import android.os.PowerManager
 import android.os.SystemClock
 import com.kingshot.camera.camera.CameraHost
@@ -323,6 +324,8 @@ class StillCaptureOrchestrator(
         val receipt = rec.assembler.build(thermal)
         results.receipts += receipt
         while (results.receipts.size > MAX_RECEIPTS) results.receipts.removeAt(0)
+        val rt = Runtime.getRuntime()
+        log.add("Memory: java heap ${(rt.totalMemory() - rt.freeMemory()) / MB} MB, native heap ${Debug.getNativeHeapAllocatedSize() / MB} MB.")
         log.add("Receipt ready for $id: ${receipt.outputs.size} output(s), shutter-to-saved ${receipt.shutterToSavedMs} ms, thermal $thermal.")
     }
 
@@ -347,6 +350,7 @@ class StillCaptureOrchestrator(
 
     companion object {
         const val MAX_IN_FLIGHT = 2
+        private const val MB = 1024L * 1024L
         private const val MATCHER_CAPACITY = 4
         private const val MATCH_TIMEOUT_MS = 8000L
         private const val RECORD_EXPIRY_MS = 30000L
