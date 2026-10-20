@@ -1,6 +1,7 @@
 // AGP 9 has built-in Kotlin, so no separate Kotlin Gradle plugin is applied.
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.ktlint) // style gate; MIT-licensed build tool, no runtime dependency
 }
 
 android {
