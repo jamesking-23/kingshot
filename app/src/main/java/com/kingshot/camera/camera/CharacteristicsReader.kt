@@ -161,7 +161,7 @@ object CharacteristicsReader {
             shadingModes = r.list("shadingModes") { c.get(CameraCharacteristics.SHADING_AVAILABLE_MODES)?.toList() },
             outputs = outputs,
             mandatoryStreamCombinations = r.list("mandatoryStreamCombinations") {
-                c.get(CameraCharacteristics.SCALER_MANDATORY_STREAM_COMBINATIONS)?.map { it.description }
+                c.get(CameraCharacteristics.SCALER_MANDATORY_STREAM_COMBINATIONS)?.map { it.description.toString() }
             },
             requestKeys = r.list("requestKeys") { c.availableCaptureRequestKeys.map { it.name } },
             resultKeys = r.list("resultKeys") { c.availableCaptureResultKeys.map { it.name } },
