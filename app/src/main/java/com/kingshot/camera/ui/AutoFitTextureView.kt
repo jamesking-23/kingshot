@@ -1,10 +1,10 @@
-package com.kingshot.lab
+package com.kingshot.camera.ui
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.TextureView
 
-/** TextureView that keeps a fixed aspect ratio (width:height) so preview is not stretched. */
+/** TextureView that keeps a fixed aspect ratio so the preview is not stretched. */
 class AutoFitTextureView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,

@@ -20,7 +20,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Lint, unit tests, assemble
-        run: ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace 2>&1 | tee build.log
+
+      # Failure details as annotations (readable from the checks API even when job logs are not).
+      - name: Annotate failure (1/3)
+        if: failure()
+        shell: bash
+        run: grep -E "^e: |error:|FAILED|What went wrong|Execution failed|AAPT|Caused by|wrong" build.log | sed -n '1,10p' | while IFS= read -r l; do l="${l//%/ pct }"; echo "::error::${l:0:380}"; done
+      - name: Annotate failure (2/3)
+        if: failure()
+        shell: bash
+        run: grep -E "^e: |error:|FAILED|What went wrong|Execution failed|AAPT|Caused by|wrong" build.log | sed -n '11,20p' | while IFS= read -r l; do l="${l//%/ pct }"; echo "::error::${l:0:380}"; done
+      - name: Annotate failure (3/3)
+        if: failure()
+        shell: bash
+        run: grep -E "^e: |error:|FAILED|What went wrong|Execution failed|AAPT|Caused by|wrong" build.log | sed -n '21,30p' | while IFS= read -r l; do l="${l//%/ pct }"; echo "::error::${l:0:380}"; done
 
       - name: Privacy gate - merged manifest must not request INTERNET
         run: |
@@ -34,6 +51,16 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: reports
+          path: |
+            build.log
+            app/build/reports/tests
+            app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: false
         with:
           name: lint-report
           path: app/build/reports/lint-results-debug.html

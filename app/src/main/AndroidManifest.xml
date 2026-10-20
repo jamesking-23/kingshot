@@ -10,7 +10,7 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.KingShot">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>

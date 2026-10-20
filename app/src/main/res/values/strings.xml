@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">KingShot Lab</string>
+    <string name="preview_description">Camera preview</string>
+    <string name="disclosure">Requests only: the device decides what it honors, and the JPEG may still be processed by the device. Phase 0 prototype, not verified on a device.</string>
+    <string name="request_nr_off">Request noise reduction OFF (only if listed)</string>
+    <string name="request_edge_off">Request edge enhancement OFF (only if listed)</string>
+    <string name="raw_dng">Also capture RAW + DNG (only if supported)</string>
+    <string name="include_samples">Include latest JPEG/DNG in bundle</string>
+    <string name="export_bundle">Export bundle</string>
+    <string name="capture">Capture</string>
+    <string name="not_listed_suffix"> (not listed by this camera)</string>
+    <string name="raw_unavailable_suffix"> (RAW not available on this camera)</string>
+    <string name="bundle_saved">Bundle saved to Download/KingShot</string>
+    <string name="bundle_failed">Bundle export failed; see the log</string>
 </resources>

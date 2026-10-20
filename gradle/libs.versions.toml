@@ -1,9 +1,10 @@
-# Versions below are the ones the CI build has proven to work (Oct 2026, prototype).
-# They have NOT yet been checked against "current stable"; see docs/ROADMAP.md task P0-01.
+# Checked against developer.android.com on 2026-10-19 (see docs/decisions/0001-toolchain-and-min-sdk.md).
 [versions]
-agp = "8.5.2"
-kotlin = "1.9.24"
+agp = "9.4.0"
+junit = "4.13.2"
+
+[libraries]
+junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

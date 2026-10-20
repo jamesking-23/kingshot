@@ -1,24 +1,24 @@
+// AGP 9 has built-in Kotlin, so no separate Kotlin Gradle plugin is applied.
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
 }
 
 android {
-    namespace = "com.kingshot.lab"
-    compileSdk = 34
+    namespace = "com.kingshot.camera"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.kingshot.lab"
-        minSdk = 29
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        applicationId = "com.kingshot.camera" // placeholder until the name check (docs/ROADMAP.md)
+        minSdk = 34
+        targetSdk = 36
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Signed with the debug key so the CI APK is installable for testing.
+            // Lab build only: signed with the debug key. Replace before any release.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -26,7 +26,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+}
+
+dependencies {
+    // JVM unit tests for the pure logic (matcher, planner, report, ...). No runtime dependencies.
+    testImplementation(libs.junit)
 }
