@@ -4,18 +4,18 @@ Blueprint phases broken into ~1-day tasks. Estimates are not schedules. Each pha
 `[D]` = needs a Device Validation Request (owner runs it on the Pixel).
 
 ## Phase 0: Device feasibility
-- P0-01 Check current stable AGP/Kotlin/Gradle/SDK versions against official sources, update the version catalog; ADR 0001 (minSdk).
-- P0-02 Configure ktlint + detekt (justify each dependency), add to CI and CLAUDE.md Commands.
-- P0-03 `capabilities` model + adapter + JSON serializer; unit tests on hand-written fixtures; capability report for **every** camera and physical ID (Appendix A schema, null + reason for gaps).
-- P0-04 Receipt and requested/reported/status types (`honored|differs|unavailable|not_requested`), plus tests.
-- P0-05 Bounded timestamp matcher (RAW and JPEG ↔ results) with timeout/orphan handling and exactly-once Image close; JVM tests; capture ID.
-- P0-06 Session builder: `isSessionConfigurationSupported` / stream-combination check, JPEG-only fallback with user-visible reason.
-- P0-07 Diagnostics bundle (report JSON+text, capture logs, one JPEG, one DNG if supported, device/build info) via share sheet / FileProvider (needs your approval if FileProvider adds manifest entries; no new permission).
-- P0-08 Split the prototype into packages per ARCHITECTURE.md; architecture test; reword the "Minimal processing" label.
-- P0-09 Lifecycle hardening (open races, reader close ordering, surface release) with fakes-based tests.
-- P0-10 Latency/thermal/cold-start logging hooks.
-- P0-11 docs/phase0/PROTOCOL.md, scoring CSV template, REPORT.md template.
-- P0-12 Write DV-001 (capability report + one shot, JPEG and DNG, timestamp assumption), DV-002 (NR/Edge OFF honored?), DV-003 (JPEG+RAW session support).
+- P0-01 [done: ADR 0001; KGP 2.4 pairing deferred] Check current stable AGP/Kotlin/Gradle/SDK versions against official sources, update the version catalog; ADR 0001 (minSdk).
+- P0-02 [ktlint done; detekt deferred, ADR 0002] Configure ktlint + detekt (justify each dependency), add to CI and CLAUDE.md Commands.
+- P0-03 [done, unit-verified; adapter unverified on device] `capabilities` model + adapter + JSON serializer; unit tests on hand-written fixtures; capability report for **every** camera and physical ID (Appendix A schema, null + reason for gaps).
+- P0-04 [done, unit-verified] Receipt and requested/reported/status types (`honored|differs|unavailable|not_requested`), plus tests.
+- P0-05 [done, unit-verified; timestamp assumption pending DV-001] Bounded timestamp matcher (RAW and JPEG ↔ results) with timeout/orphan handling and exactly-once Image close; JVM tests; capture ID.
+- P0-06 [done; device behavior pending DV-003] Session builder: `isSessionConfigurationSupported` / stream-combination check, JPEG-only fallback with user-visible reason.
+- P0-07 [done; unverified on device] Diagnostics bundle (report JSON+text, capture logs, one JPEG, one DNG if supported, device/build info) via share sheet / FileProvider (needs your approval if FileProvider adds manifest entries; no new permission).
+- P0-08 [done] Split the prototype into packages per ARCHITECTURE.md; architecture test; reword the "Minimal processing" label.
+- P0-09 [done; fakes-based lifecycle tests not written yet] Lifecycle hardening (open races, reader close ordering, surface release) with fakes-based tests.
+- P0-10 [partial: shutter-to-saved, processing time and thermal logged in receipts; memory and cold-start not yet] Latency/thermal/cold-start logging hooks.
+- P0-11 [done] docs/phase0/PROTOCOL.md, scoring CSV template, REPORT.md template.
+- P0-12 [done: docs/phase0/DEVICE_VALIDATION_REQUESTS.md] Write DV-001 (capability report + one shot, JPEG and DNG, timestamp assumption), DV-002 (NR/Edge OFF honored?), DV-003 (JPEG+RAW session support).
 - **Gate:** [D] your bundles → VALIDATION_LOG.md, fixtures, ADR 0004, and I propose which claims are allowed (and the wording) and which are not.
 
 ## Phase 1: Core capture

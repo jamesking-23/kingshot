@@ -13,8 +13,8 @@ Android camera app, Pixel first. Source of truth: docs/BLUEPRINT.md. Progress le
 - Close every Image exactly once, keep queues bounded, match images to results by timestamp.
 
 ## Commands
-./gradlew lintDebug testDebugUnitTest assembleDebug
-(ktlintCheck and detekt join this line once they are configured; see docs/ROADMAP.md task P0-02.)
+./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug
+(detekt joins this line when a stable release supports current Kotlin; see docs/decisions/0002.)
 
 ## Workflow
 Tests first for logic that runs on a JVM. Small commits. Update the trace. Report as: Done, Verified, Unverified, Needs from me, Next.

@@ -6,6 +6,30 @@ Subject: `app/src/main/java/com/kingshot/lab/MainActivity.kt` and `app/src/main/
 **Verification status:** CI has compiled and assembled it. It has not been linted, unit-tested, installed or run on any device.
 Severity: **H** breaks a non-negotiable or a blueprint caveat, **M** correctness or robustness, **L** cleanup.
 
+## Status after the Phase 0 rewrite (2026-10-20, CI run 39354771975)
+The original prototype was replaced by the package structure in docs/ARCHITECTURE.md. Item by item (none verified on a device):
+| # | Status |
+|---|---|
+| 1 | addressed: `isSessionConfigurationSupported` check, then JPEG-only fallback with a reason; device behavior pending DV-003 |
+| 2, 4 | addressed: bounded `TimestampMatcher` for JPEG and RAW, orphan handling, exactly-once close; unit-tested |
+| 3 | **open**, DV-001 |
+| 5 | addressed: the delete call was removed. A failed save leaves the hidden pending MediaStore item and reports the failure; nothing is deleted (owner delegated the choice; reversible later) |
+| 6 | addressed: labels now say "Request ... OFF (only if listed)" and a disclosure line is shown |
+| 7 | partly: receipts are built per capture and exported in the bundle; persistence is Phase 2 |
+| 8 | addressed for naming (shared capture ID stem); pairing store is Phase 2 |
+| 9, 10, 11 | addressed: status vocabulary, full report for every camera and physical ID (JSON + text), capability model |
+| 12 | addressed: `acquireNextImage` guarded, `maxImages` 3, at most 2 captures in flight |
+| 13, 14, 17, 18 | addressed by the thread-confined `CameraHost` state machine; unverified on device |
+| 15 | partly: orientation math is unit-tested; landscape stays untested (screen is portrait-locked) |
+| 16 | partly: top-level rear BACKWARD_COMPATIBLE camera is chosen, active physical ID is read from results; assumption pending DV-001 |
+| 19 | addressed (capture ID names; MediaStore never overwrites) |
+| 20 | partly: shutter-to-saved, processing time and thermal status are in receipts; memory and cold start are not |
+| 21, 22, 23 | addressed: packages + architecture test; ADR 0001 (minSdk 34); applicationId `com.kingshot.camera` (placeholder) |
+| 24 | open: release build is still debug-signed (Lab only) |
+| 25 | partly: ktlint, Android lint and JVM tests exist; detekt deferred (ADR 0002); no instrumented tests yet |
+
+The original findings are kept below for history.
+
 ## Against the blueprint section 8 caveats
 | # | Sev | Defect / risk | Where | Planned fix |
 |---|-----|---------------|-------|-------------|

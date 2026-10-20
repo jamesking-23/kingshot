@@ -15,9 +15,11 @@ Pipeline (blueprint §5): UI → Capture Orchestrator → Camera2 capability reg
 | `diagnostics` | Capability report (JSON + text), Processing Receipts, capture logs, exportable bundle | User-initiated share only. Key names, no vendor-private values. |
 | `ui` | Compose screens, ViewModels with StateFlow | Unidirectional data flow. Talks to the Orchestrator, never to Camera2. |
 
-## Dependency direction (enforced by an architecture test, task P0-08)
-`ui → capture → {camera, capabilities, raw, media, profiles, diagnostics}`; `camera → capabilities`; `raw → capabilities`;
-`diagnostics → capabilities`; `processing → raw, media` (Phase 3). `capabilities` and `profiles` depend on nothing in the app. No cycles.
+## Dependency direction (enforced by `ArchitectureTest`)
+Allowed imports between packages (anything else fails the build):
+`capabilities` -> nothing; `raw` -> nothing; `media` -> nothing; `profiles` -> capabilities; `diagnostics` -> capabilities, media;
+`camera` -> capabilities, diagnostics, raw; `capture` -> camera, capabilities, diagnostics, media, raw, profiles; `ui` -> any.
+The same test checks that the pure core (capabilities, planner, matcher, receipts, JSON, report, log) has no `android.*` imports and that no network API appears in sources.
 
 ## Key design points
 - **Pure core, thin Android edge.** Matching, request building, validation, receipt building, pairing and storage-failure handling are Kotlin classes with no Android types in their signatures, so they run as JVM tests. Android types stay in adapters.
@@ -28,4 +30,4 @@ Pipeline (blueprint §5): UI → Capture Orchestrator → Camera2 capability reg
 - **Privacy.** CAMERA permission only; no INTERNET; CI gate on the merged manifest.
 
 ## Initial ADRs to write (docs/decisions/)
-0001 minimum SDK (proposal: 31, current prototype uses 29) · 0002 UI toolkit and when Compose replaces XML · 0003 capability model schema/versioning · 0004 NR MINIMAL fallback (Phase 0, from evidence) · 0005 receipt/pairing store (Phase 2) · 0006 RAW library (Phase 3, owner decides).
+0001 toolchain and min SDK (accepted) · 0002 quality gates and dependencies (accepted) · UI toolkit and when Compose replaces XML · 0003 capability model schema/versioning · 0004 NR MINIMAL fallback (Phase 0, from evidence) · 0005 receipt/pairing store (Phase 2) · 0006 RAW library (Phase 3, owner decides).
