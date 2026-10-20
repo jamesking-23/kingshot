@@ -40,10 +40,12 @@ class DiagnosticsTest {
     fun missingValuesAreNullWithAReasonNeverOmitted() {
         val cam = CameraCapabilities("0", lensFacing = "BACK", missing = mapOf("hardwareLevel" to "boom"))
         val map = CapabilityReport.cameraMap(cam)
+
         @Suppress("UNCHECKED_CAST") // test-only access to the nested report structure
         val identity = map["identity"] as Map<String, Any?>
         assertTrue(identity.containsKey("hardwareLevel"))
         assertNull(identity["hardwareLevel"])
+
         @Suppress("UNCHECKED_CAST") // test-only
         val missing = map["missing"] as Map<String, String>
         assertEquals("boom", missing["hardwareLevel"])
