@@ -188,7 +188,10 @@ class StillCaptureOrchestrator(
     // ------------------------------------------------------------ matching outcomes
 
     private fun handle(kind: ImageKind, outcome: TimestampMatcher.Outcome<ImageHandle, Completed>) {
-        outcome.match?.let { m -> dispatch(kind, m.image, m.result) }
+        outcome.match?.let { m ->
+            log.add("$kind image matched to ${m.result.captureId} by sensor timestamp ${m.timestamp}.")
+            dispatch(kind, m.image, m.result)
+        }
         outcome.orphans.forEach { o -> handleOrphan(kind, o) }
     }
 
