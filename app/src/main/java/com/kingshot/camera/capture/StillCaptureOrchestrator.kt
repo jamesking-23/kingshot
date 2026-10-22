@@ -155,7 +155,8 @@ class StillCaptureOrchestrator(
             evCompSteps = result.get(CaptureResult.CONTROL_AE_EXPOSURE_COMPENSATION),
             aeState = StateNames.ae(result.get(CaptureResult.CONTROL_AE_STATE)),
             afState = StateNames.af(result.get(CaptureResult.CONTROL_AF_STATE)),
-            awbState = StateNames.awb(result.get(CaptureResult.CONTROL_AWB_STATE))
+            awbState = StateNames.awb(result.get(CaptureResult.CONTROL_AWB_STATE)),
+            postRawSensitivityBoost = result.get(CaptureResult.CONTROL_POST_RAW_SENSITIVITY_BOOST)
         )
         record.assembler.onResult(
             controls, exposure,
@@ -166,7 +167,7 @@ class StillCaptureOrchestrator(
         controls.forEach { c ->
             log.add("${c.name}: requested=${c.requested ?: "-"} reported=${c.reported ?: "-"} -> ${c.status.plain}${c.note?.let { " ($it)" } ?: ""}")
         }
-        log.add("Exposure: ${exposure.exposureTimeNs} ns, ISO ${exposure.iso}, AE ${exposure.aeState}, AF ${exposure.afState}")
+        log.add("Exposure: ${exposure.exposureTimeNs} ns, ISO ${exposure.iso} (post-RAW boost ${exposure.postRawSensitivityBoost}), AE ${exposure.aeState}, AF ${exposure.afState}")
 
         val ts = result.get(CaptureResult.SENSOR_TIMESTAMP)
         if (ts == null) {

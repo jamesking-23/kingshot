@@ -22,7 +22,9 @@ data class ExposureInfo(
     val evCompSteps: Int? = null,
     val aeState: String? = null,
     val afState: String? = null,
-    val awbState: String? = null
+    val awbState: String? = null,
+    /** android.control.postRawSensitivityBoost as reported (100 = no boost); helps explain EXIF ISO vs sensor ISO. */
+    val postRawSensitivityBoost: Int? = null
 )
 
 data class OutputRecord(
@@ -73,7 +75,8 @@ data class ProcessingReceipt(
         },
         "exposure" to linkedMapOf(
             "exposureTimeNs" to exposure.exposureTimeNs, "iso" to exposure.iso, "evCompSteps" to exposure.evCompSteps,
-            "aeState" to exposure.aeState, "afState" to exposure.afState, "awbState" to exposure.awbState
+            "aeState" to exposure.aeState, "afState" to exposure.afState, "awbState" to exposure.awbState,
+            "postRawSensitivityBoost" to exposure.postRawSensitivityBoost
         ),
         "disclosures" to disclosures,
         "timing" to linkedMapOf("shutterToSavedMs" to shutterToSavedMs, "processingMs" to processingMs),

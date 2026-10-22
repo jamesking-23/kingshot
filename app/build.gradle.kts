@@ -32,4 +32,6 @@ android {
 dependencies {
     // JVM unit tests for the pure logic (matcher, planner, report, ...). No runtime dependencies.
     testImplementation(libs.junit)
+    // Test-only (Apache-2.0): reads recorded device fixtures (fixtures/capabilities/*.json).
+    testImplementation(libs.gson)
 }
