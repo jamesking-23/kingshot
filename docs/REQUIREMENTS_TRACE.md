@@ -90,7 +90,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | R5 | 11 | Risk: Multi-frame processing can cause ghosting, heat, memory pressure, delay | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
 | R6 | 11 | Risk: Device-specific tuning creates maintenance burden (no per-model code without measurement + ADR) | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
 | R7 | 11 | Risk: UI must be tested with rotation, screen lock, calls, permissions, backgrounding | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
-| PH0 | 9 | Phase 0: Device feasibility: Camera Lab, capability report, test kit; gate = no minimal-processing claim without proof | 0 | - | phase report + gate | not started | - |
+| PH0 | 9 | Phase 0: Device feasibility: Camera Lab, capability report, test kit; gate = no minimal-processing claim without proof | 0 | - | phase report + gate | blocked | docs/phase0/PHASE0_REPORT.md (gate open: waiting on DV-001..004 from the owner's device) |
 | PH1 | 9 | Phase 1: Core capture: preview, capture, lens, timer, EV, saving, lifecycle | 1 | - | phase report + gate | not started | - |
 | PH2 | 9 | Phase 2: RAW and processing control: DNG reliability, profile persistence, logging, fallback UI, receipts | 2 | - | phase report + gate | not started | - |
 | PH3 | 9 | Phase 3: Rendering and computational: RAW renderer, pairing, HDR/denoise experiments, benchmarks | 3 | - | phase report + gate | not started | - |

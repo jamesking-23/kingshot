@@ -7,4 +7,5 @@
 - Removed media-delete code from the save path (failed saves leave the hidden pending item and are reported).
 - Toolchain: AGP 9.4.0, Gradle 9.6.0, minSdk 34, ktlint in CI (ADR 0001, 0002).
 - Memory and resume-to-first-frame logging; docs/benchmarks/.
+- Phase 0 report (gate open, blocked on device results): docs/phase0/PHASE0_REPORT.md.
 - Phase 0 test kit: docs/phase0/ (protocol, scoring CSV, report template, DV-001..004).
