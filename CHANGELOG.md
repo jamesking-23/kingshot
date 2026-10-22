@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- First device validation (Pixel 7, Android 17): fixtures/capabilities, docs/VALIDATION_LOG.md, ADR 0004; receipts and log now record postRawSensitivityBoost.
 - Phase 0 Camera Lab rebuilt as packages (camera, capabilities, capture, raw, media, diagnostics, ui) with JVM tests.
 - Capability report (JSON + text) for every camera and physical ID; Processing Receipts; diagnostics bundle via share sheet.
 - Bounded timestamp matcher for JPEG/RAW; session support check with JPEG-only fallback.

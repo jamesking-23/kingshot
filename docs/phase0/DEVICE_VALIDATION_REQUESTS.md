@@ -34,3 +34,21 @@ Common to all requests.
 - **Why:** QA03, CF07.
 - **Steps:** copy one `.dng` to a computer; open it in the independent RAW tool; check orientation, that exposure/ISO metadata show, and colors look sane after default rendering.
 - **Decision rule:** opens and looks right -> DNG path may be called "opens in <tool> on <device>". Otherwise attach the file; I will check metadata and orientation handling.
+
+---
+# Round 2 (after the first Pixel 7 results)
+Install the newest APK from the latest green CI run (it now records `postRawSensitivityBoost`). Everything under "Common to all requests" still applies.
+
+## Part A: DV-003 JPEG + RAW together (RAW box ticked)
+1. Open the app, wait for "Session ready". Tick "Also capture RAW + DNG". Read the log: it says whether the device reports the combination as supported, and the status line shows whether the session is "preview + JPEG + RAW".
+2. Tap Capture 3 times, 3 seconds apart. Then 3 times quickly in a row.
+3. Tick "Include latest JPEG/DNG in bundle", tap Export bundle, share it.
+Decision rule as in DV-003 above. If the RAW box is greyed out or switches itself off, send a screenshot with the log: that is the answer.
+
+## Part B: DV-002b more scenes and the unticked default
+In a **bright, textured scene** (window light or outdoors, same framing for all four): untick RAW, then take 2 captures with NR and Edge ticked and 2 with both unticked. Repeat once in a **dim** scene if you can. Export a second bundle.
+- **Why:** shows what the device reports when we do not ask (the receipt's `not_requested` rows show the default modes), whether OFF is honored in other light, and the sensitivity boost value for the ISO question.
+- **Decision rule:** `honored` throughout, with different reported modes when unticked -> the request visibly changes the device's mode on this phone (still not a "minimal processing" claim). Same reported mode ticked or unticked -> the request makes no reported difference; I will say so.
+
+## Send back
+Both bundle zips, plus screenshots of any toast or message. If you can, tell me which APK run you installed.

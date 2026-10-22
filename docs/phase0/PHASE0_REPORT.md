@@ -1,53 +1,49 @@
 # Phase 0 report: device feasibility
 
-**Status: build and test kit complete. Gate OPEN: blocked on device results from the owner's Pixel.**
-Date: 2026-10-22. Build: commit `f0fd7d9` (CI run 39388493642, green). No Device Validation Request has been run, so `docs/VALIDATION_LOG.md` is empty.
+**Status: gate still OPEN. First device data is in (Google Pixel 7, Android 17); RAW, the full DV-002 protocol and the stock comparison are outstanding.**
+Updated 2026-10-23. Code: CI run 39868155301 (green). Device results: `docs/VALIDATION_LOG.md`. Recorded fixture: `fixtures/capabilities/google_panther_android17_report.json`.
 
-## What is done (with evidence)
-| Item | Evidence |
-|---|---|
-| Camera Lab: permission, discovery of every camera and physical ID, live preview | code in `app/`; compiles and lints in CI; not run on a device |
-| Capability report (JSON + text, null-with-reason) | `capabilities/`, `diagnostics/CapabilityReport.kt`; `DiagnosticsTest` |
-| Capability-checked NR/Edge OFF requests; requested vs reported vs status | `StillRequestPlannerTest` |
-| JPEG capture and optional RAW+DNG, session support check, JPEG-only fallback | `camera/CameraHost.kt`; unverified on device |
-| Bounded timestamp matcher, orphan handling, exactly-once image close | `TimestampMatcherTest` |
-| Processing Receipts, capture log, exportable bundle via share sheet | `ReceiptAssembler`, `BundleExporter`; receipts unit-tested, export unverified on device |
-| Latency, thermal, memory, resume-to-first-frame logging | receipts + log; `docs/benchmarks/README.md` |
-| Guards: INTERNET gate, architecture test, ktlint, Android lint | CI run 39388493642 |
-| Test kit: protocol, scoring CSV, report template, DV-001..004 | `docs/phase0/` |
+## What the Pixel 7 run established (3 JPEG captures, one indoor low-light scene)
+- The capability report works on a real device: 7 camera IDs (back logical `0` with physical `2`, `3`, `4`; front logical `1` with `5`, `6`), nothing missing for camera `0`.
+- Noise reduction OFF and edge OFF are listed on every camera; MINIMAL is listed on none.
+- Requests: NOISE_REDUCTION_MODE and EDGE_MODE requested OFF, reported OFF, `honored` in 3 of 3 captures.
+- JPEG matched its result by sensor timestamp in 3 of 3 captures (RAW untested).
+- Active physical camera in receipts: `2` at zoom 1.0 (focal length 6.81 mm in the report).
+- MediaStore save, receipts, log and the bundle export/share all worked.
+- Timing baseline (one device, indoor): shutter-to-saved 411 to 465 ms; thermal LIGHT; heap about 7 MB Java and 17 MB native.
 
-## Gaps
-- **Device facts: all missing.** No result exists for DV-001 (timestamp equality, main-camera assumption), DV-002 (are NR/Edge OFF honored), DV-003 (JPEG+RAW together), DV-004 (DNG opens elsewhere), or the stock-vs-KingShot comparison.
-- No fakes-based lifecycle tests, no instrumented tests, no peak-memory or process cold-start benchmark (planned for Phase 1).
-- detekt deferred (ADR 0002). Release build still debug-signed (Lab only).
+## What it did NOT establish
+- RAW or DNG anything (DV-003, DV-004 not run).
+- Whether the result differs from the stock camera (no comparison yet).
+- Anything about other scenes, other lenses, other zoom levels or other phones.
+- **An unexplained gap:** the JPEGs' EXIF ISO (1904, 4739) is higher than the capture result's sensor ISO (744 in both). We do not know why. The next build records `postRawSensitivityBoost` to test one candidate explanation. Until explained, "the device reported OFF" must not be read as "the pixels are untouched".
 
-## Claims allowed today
-Only statements about the design, each backed by a test or the code, never about device behavior:
-- "KingShot requests noise-reduction OFF and edge OFF only when the camera lists them as available."
-- "KingShot shows what was requested, what the device reported, and whether they matched."
-- "The app has no network permission."
+## Claims allowed now
+1. "On a Google Pixel 7 running Android 17, in three test captures, KingShot requested noise reduction OFF and edge OFF and the device reported OFF." (test result, with those qualifiers)
+2. "KingShot requests noise reduction OFF and edge OFF only when the camera lists them."
+3. "KingShot shows what it requested, what the device reported, and whether they matched."
+4. "KingShot captures JPEG on the Pixel 7 and saves it to Pictures/KingShot."
+5. "The app has no network permission."
 
-## Claims NOT allowed until the DV results exist
-"minimal processing", "unprocessed", "RAW works on <device>", "JPEG+RAW capture", "DNG opens in <tool>", any statement that NR/Edge OFF is honored, any comparison with the stock camera, any model-specific feature.
+## Claims NOT allowed yet
+"minimal processing", "unprocessed", "no processing", "disables the camera's processing", any RAW/DNG claim, any claim about quality versus the stock camera, any claim for other phone models, and any general statement that OFF is honored (three captures in one scene is not that).
 
-## Proposed wording once results arrive (decide from the receipts; do not use before)
-| Outcome | Wording allowed |
-|---|---|
-| Receipt `honored` for NR and Edge, repeatedly | "On <device>, KingShot requested noise reduction OFF and edge OFF and the device reported OFF." (still not "unprocessed") |
-| `differs` | "KingShot requested OFF; this device reported <mode>." |
-| `unavailable` | "This camera does not list OFF for <control>, so KingShot did not request it." |
-| JPEG+RAW session works | "Captures a JPEG and a DNG together on <device>." Otherwise "JPEG only on this device: <reason>." |
-| DNG opens and looks right | "DNG opens in <tool + version> on <computer>." |
+## Gaps and next evidence
+| Need | Why | How |
+|---|---|---|
+| DV-003 JPEG+RAW | RAW claims, risks R2/R4, matching for RAW | Round 2, part A in `DEVICE_VALIDATION_REQUESTS.md` |
+| DV-002b: more scenes and the unticked default | generality; what the device reports when we do not ask | Round 2, part B |
+| DV-004 DNG in an independent tool | DNG claim | after part A |
+| Stock-vs-KingShot comparison | any quality or "less processed" claim | `PROTOCOL.md` |
+| EXIF ISO vs sensor ISO | interpreting "honored" honestly | new build logs the boost; part B |
+
+Not built yet (planned Phase 1): fakes-based lifecycle tests, instrumented tests, peak-memory and process cold-start benchmarks.
 
 ## Risks carried forward
-1. The device may ignore NR/Edge OFF; evidence decides whether Natural can claim anything (ADR 0004).
-2. `Image.timestamp` may not equal `SENSOR_TIMESTAMP`; matching would need redesign.
-3. JPEG+RAW may be unsupported together; RAW-only mode would then be a scope question for the owner.
-4. The main-camera choice is an assumption; other lenses and non-Pixel phones are unverified.
-5. Name collision: "Kingshot" is an existing mobile game; clearance is needed before public use.
+1. OFF being "reported" does not prove the ISP leaves the image alone (see the ISO gap).
+2. RAW+JPEG may be unsupported together on this or other devices; RAW-only would be a scope question for the owner.
+3. The main-camera choice is evidence from one device at 1x.
+4. Name collision: "Kingshot" is an existing mobile game; clearance needed before public use.
 
-## Proposed next milestone (from the blueprint's closing rule, subject to the data)
-After DV-001..003 results: ADR 0004 (NR MINIMAL fallback decision from evidence), fix whatever the DVs break, then Phase 1 (core capture: Compose shell, Natural profile, lens selection, timer, EV, tap-to-focus, saving, lifecycle recovery) on your approval.
-
-## Approval
-Phase 1 does not start until the owner approves this report after the device results are in.
+## Proposed next milestone
+Close the gate with Round 2 results, then write the final Phase 0 report. If DV-003 passes: Phase 1 as planned. If JPEG+RAW is unsupported: ask the owner whether to add a RAW-only mode before Phase 2. Phase 1 does not start until the owner approves the final Phase 0 report.
