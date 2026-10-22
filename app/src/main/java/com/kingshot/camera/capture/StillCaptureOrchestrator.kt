@@ -167,7 +167,8 @@ class StillCaptureOrchestrator(
         controls.forEach { c ->
             log.add("${c.name}: requested=${c.requested ?: "-"} reported=${c.reported ?: "-"} -> ${c.status.plain}${c.note?.let { " ($it)" } ?: ""}")
         }
-        log.add("Exposure: ${exposure.exposureTimeNs} ns, ISO ${exposure.iso} (post-RAW boost ${exposure.postRawSensitivityBoost}), AE ${exposure.aeState}, AF ${exposure.afState}")
+        log.add("Exposure: ${exposure.exposureTimeNs} ns, ISO ${exposure.iso} (post-RAW boost ${exposure.postRawSensitivityBoost})")
+        log.add("States: AE ${exposure.aeState}, AF ${exposure.afState}, AWB ${exposure.awbState}")
 
         val ts = result.get(CaptureResult.SENSOR_TIMESTAMP)
         if (ts == null) {
