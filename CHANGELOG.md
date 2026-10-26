@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Phase 1 (in progress): Compose UI with ViewModel/StateFlow replaces the XML Lab screen (Lab features kept); compileSdk 37 required by Compose 1.12, targetSdk stays 36.
+- Phase 1 logic with JVM tests: EvMath, LensMath (optical vs digital-crop stops), MeteringMath, LevelMath, Countdown, LowLightAdvisor. Lens ratio estimate checked against the Pixel 7 report (device min zoom 0.6704 vs computed 0.66).
 - First device validation (Pixel 7, Android 17): fixtures/capabilities, docs/VALIDATION_LOG.md, ADR 0004; receipts and log now record postRawSensitivityBoost.
 - Phase 0 Camera Lab rebuilt as packages (camera, capabilities, capture, raw, media, diagnostics, ui) with JVM tests.
 - Capability report (JSON + text) for every camera and physical ID; Processing Receipts; diagnostics bundle via share sheet.
