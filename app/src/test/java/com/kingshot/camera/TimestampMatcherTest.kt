@@ -25,7 +25,7 @@ class TimestampMatcherTest {
         val img = Fake()
         assertNull(m.onImage(10, img, 0).match)
         val out = m.onResult(10, "r", 5)
-        assertSame(img, out.match.image)
+        assertSame(img, out.match!!.image)
         assertEquals("r", out.match.result)
         assertEquals(0, m.pendingImages())
     }
@@ -36,7 +36,7 @@ class TimestampMatcherTest {
         assertNull(m.onResult(7, "r", 0).match)
         val img = Fake()
         val out = m.onImage(7, img, 1)
-        assertSame(img, out.match.image)
+        assertSame(img, out.match!!.image)
         assertEquals(0, m.pendingResults())
     }
 
