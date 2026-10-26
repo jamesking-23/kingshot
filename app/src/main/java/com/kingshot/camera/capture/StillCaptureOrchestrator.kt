@@ -10,6 +10,8 @@ import com.kingshot.camera.camera.CameraHost
 import com.kingshot.camera.camera.CameraHostListener
 import com.kingshot.camera.camera.ImageHandle
 import com.kingshot.camera.camera.ImageKind
+import com.kingshot.camera.camera.HostControls
+import com.kingshot.camera.camera.HostMeter
 import com.kingshot.camera.camera.StillRequestSpec
 import com.kingshot.camera.capabilities.CameraCapabilities
 import com.kingshot.camera.capabilities.Orientation
@@ -100,6 +102,32 @@ class StillCaptureOrchestrator(
         if (closed > 0) log.add("Shutdown closed $closed unmatched image(s).")
     }
 
+    @Volatile
+    private var controlRequest = ControlRequest()
+
+    private fun toHost(plan: ControlPlan) = HostControls(
+        plan.evIndex, plan.zoomRatio, plan.aeMode,
+        plan.meter?.let { HostMeter(it.x, it.y, it.width, it.height, it.weight) }
+    )
+
+    /** Applies EV, zoom, flash mode and any metering region to the live preview, each checked against the camera's capabilities. */
+    fun setControls(request: ControlRequest): ControlPlan? {
+        controlRequest = request
+        val caps = activeCapabilities ?: return null
+        val plan = ControlPlanner.plan(caps, request)
+        host.setControls(toHost(plan))
+        return plan
+    }
+
+    /** Tap-to-focus at a point of the portrait preview (0..1 each way). */
+    fun focusAt(nx: Float, ny: Float) {
+        val caps = activeCapabilities ?: return
+        val active = caps.activeArray ?: return
+        val region = MeteringMath.region(nx, ny, caps.sensorOrientation ?: 90, active, controlRequest.zoomRatio)
+        controlRequest = controlRequest.copy(meter = region)
+        host.focusAt(HostMeter(region.x, region.y, region.width, region.height, region.weight))
+    }
+
     fun takePhoto(choice: ProcessingChoice, deviceDegrees: Int) {
         val caps = activeCapabilities
         if (caps == null) {
@@ -113,6 +141,8 @@ class StillCaptureOrchestrator(
         }
         val plan = StillRequestPlanner.plan(caps, choice)
         plan.notes.forEach { log.add(it) }
+        val controlPlan = ControlPlanner.plan(caps, controlRequest)
+        controlPlan.notes.forEach { log.add(it) }
         val rawExpected = host.rawActive
         val wall = wallMs()
         val id = ids.next(wall)
@@ -122,7 +152,10 @@ class StillCaptureOrchestrator(
         log.add("Capture $id requested (RAW expected: $rawExpected).")
         host.capture(
             CaptureTag(id, plan, orientation, rawExpected),
-            StillRequestSpec(plan.noiseReductionMode, plan.edgeMode, plan.useContinuousPictureAf),
+            StillRequestSpec(
+                plan.noiseReductionMode, plan.edgeMode, plan.useContinuousPictureAf,
+                toHost(controlPlan), controlPlan.needsPrecapture
+            ),
             orientation
         )
     }

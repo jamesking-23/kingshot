@@ -10,6 +10,7 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureFailure
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
@@ -25,8 +26,25 @@ import java.util.concurrent.Executor
 
 enum class ImageKind { JPEG, RAW }
 
+/** A metering rectangle in active-array pixels (weight 0..1000). */
+data class HostMeter(val x: Int, val y: Int, val width: Int, val height: Int, val weight: Int)
+
+/** Capability-checked values for the preview and still requests. A null means the key is not set. */
+data class HostControls(
+    val evIndex: Int? = null,
+    val zoomRatio: Float? = null,
+    val aeMode: Int? = null,
+    val meter: HostMeter? = null
+)
+
 /** What to set on a still request. Already checked against capabilities by the capture package. */
-data class StillRequestSpec(val noiseReductionMode: Int?, val edgeMode: Int?, val useContinuousPictureAf: Boolean)
+data class StillRequestSpec(
+    val noiseReductionMode: Int?,
+    val edgeMode: Int?,
+    val useContinuousPictureAf: Boolean,
+    val controls: HostControls = HostControls(),
+    val precapture: Boolean = false
+)
 
 /** Callbacks arrive on the camera thread. Implementations must not block it. */
 interface CameraHostListener {
@@ -68,6 +86,8 @@ class CameraHost(context: Context, private val log: CaptureLog) {
     private var wantRaw = false
     private var generation = 0
     private var quitWhenIdle = false
+    private var controls = HostControls()
+    private var aeState: Int? = null
 
     @Volatile
     var rawActive: Boolean = false
@@ -127,17 +147,58 @@ class CameraHost(context: Context, private val log: CaptureLog) {
         }
     }
 
+    /** Applies new controls to the running preview. Takes effect on the next preview frame. */
+    fun setControls(c: HostControls) {
+        post {
+            controls = c
+            if (state == State.OPEN) repeatPreview()
+        }
+    }
+
+    /** Tap-to-focus: sets the metering regions, fires one AF trigger, then returns to continuous picture AF. */
+    fun focusAt(meter: HostMeter) {
+        post {
+            controls = controls.copy(meter = meter)
+            val dev = device
+            val sess = session
+            val surface = previewSurface
+            if (state != State.OPEN || dev == null || sess == null || surface == null) return@post
+            try {
+                val b = dev.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                b.addTarget(surface)
+                applyControls(b, controls, includeAeMode = true)
+                b.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+                b.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START)
+                sess.capture(b.build(), null, handler)
+                repeatPreview()
+            } catch (e: Exception) {
+                log.add("Tap-to-focus failed: ${e.javaClass.simpleName}: ${e.message}")
+            }
+        }
+    }
+
     fun characteristics(): CameraCharacteristics? = chars
 
     fun capture(tag: Any, spec: StillRequestSpec, jpegOrientation: Int) {
         post {
+            if (spec.precapture) {
+                runPrecapture { captureNow(tag, spec, jpegOrientation) }
+            } else {
+                captureNow(tag, spec, jpegOrientation)
+            }
+        }
+    }
+
+    // Camera thread only.
+    private fun captureNow(tag: Any, spec: StillRequestSpec, jpegOrientation: Int) {
+        run {
             val dev = device
             val sess = session
             val jr = jpegReader
             val c = caps
             if (state != State.OPEN || dev == null || sess == null || jr == null || c == null) {
                 listener?.onCaptureFailed(tag, "camera not ready (state=$state)")
-                return@post
+                return
             }
             try {
                 val b = dev.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
@@ -146,6 +207,7 @@ class CameraHost(context: Context, private val log: CaptureLog) {
                 if (spec.useContinuousPictureAf) {
                     b.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
                 }
+                applyControls(b, spec.controls, includeAeMode = true)
                 b.set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation)
                 spec.noiseReductionMode?.let { b.set(CaptureRequest.NOISE_REDUCTION_MODE, it) }
                 spec.edgeMode?.let { b.set(CaptureRequest.EDGE_MODE, it) }
@@ -158,6 +220,85 @@ class CameraHost(context: Context, private val log: CaptureLog) {
     }
 
     // ------------------------------------------------------------ camera-thread internals
+
+    private fun applyControls(b: CaptureRequest.Builder, c: HostControls, includeAeMode: Boolean) {
+        c.evIndex?.let { b.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, it) }
+        c.zoomRatio?.let { b.set(CaptureRequest.CONTROL_ZOOM_RATIO, it) }
+        if (includeAeMode) c.aeMode?.let { b.set(CaptureRequest.CONTROL_AE_MODE, it) }
+        val m = c.meter
+        val ch = chars
+        if (m != null && ch != null) {
+            val rect = android.hardware.camera2.params.MeteringRectangle(m.x, m.y, m.width, m.height, m.weight)
+            val maxAf = ch.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) ?: 0
+            val maxAe = ch.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE) ?: 0
+            if (maxAf > 0) b.set(CaptureRequest.CONTROL_AF_REGIONS, arrayOf(rect))
+            if (maxAe > 0) b.set(CaptureRequest.CONTROL_AE_REGIONS, arrayOf(rect))
+        }
+    }
+
+    private fun repeatPreview() {
+        val dev = device ?: return
+        val sess = session ?: return
+        val surface = previewSurface ?: return
+        val c = caps ?: return
+        try {
+            val b = dev.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            b.addTarget(surface)
+            if (c.supportsContinuousPictureAf()) b.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+            applyControls(b, controls, includeAeMode = true)
+            sess.setRepeatingRequest(b.build(), previewCallback, handler)
+        } catch (e: Exception) {
+            log.add("Preview update failed: ${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
+    /** Runs the AE precapture sequence (needed before a flash shot), then [then]. Gives up waiting after PRECAPTURE_TIMEOUT_MS. */
+    private fun runPrecapture(then: () -> Unit) {
+        val dev = device
+        val sess = session
+        val surface = previewSurface
+        val h = handler
+        if (state != State.OPEN || dev == null || sess == null || surface == null || h == null) {
+            then()
+            return
+        }
+        try {
+            val b = dev.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            b.addTarget(surface)
+            applyControls(b, controls, includeAeMode = true)
+            b.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
+            sess.capture(b.build(), null, h)
+        } catch (e: Exception) {
+            log.add("AE precapture trigger failed: ${e.javaClass.simpleName}: ${e.message}")
+            then()
+            return
+        }
+        val gen = generation
+        val deadline = android.os.SystemClock.elapsedRealtime() + PRECAPTURE_TIMEOUT_MS
+        var sawPrecapture = false
+        val poll = object : Runnable {
+            override fun run() {
+                if (gen != generation || state != State.OPEN) return
+                val st = aeState
+                if (st == CaptureResult.CONTROL_AE_STATE_PRECAPTURE) sawPrecapture = true
+                val settled = st == CaptureResult.CONTROL_AE_STATE_CONVERGED || st == CaptureResult.CONTROL_AE_STATE_FLASH_REQUIRED
+                val timedOut = android.os.SystemClock.elapsedRealtime() >= deadline
+                if ((sawPrecapture && settled) || timedOut) {
+                    if (timedOut) log.add("AE precapture did not settle within ${PRECAPTURE_TIMEOUT_MS} ms; capturing anyway.")
+                    then()
+                } else {
+                    h.postDelayed(this, PRECAPTURE_POLL_MS)
+                }
+            }
+        }
+        h.postDelayed(poll, PRECAPTURE_POLL_MS)
+    }
+
+    private val previewCallback = object : CameraCaptureSession.CaptureCallback() {
+        override fun onCaptureCompleted(s: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+            aeState = result.get(CaptureResult.CONTROL_AE_STATE)
+        }
+    }
 
     private fun post(block: () -> Unit) {
         handler?.post(block)
@@ -309,16 +450,6 @@ class CameraHost(context: Context, private val log: CaptureLog) {
         rr?.let { outputs += OutputConfiguration(it.surface) }
         val attemptedRaw = rr != null
 
-        val previewRequest = try {
-            dev.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                addTarget(pSurface)
-                if (c.supportsContinuousPictureAf()) set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
-            }.build()
-        } catch (e: Exception) {
-            listener?.onSessionProblem("Preview request failed: ${e.message}")
-            return
-        }
-
         val callback = object : CameraCaptureSession.StateCallback() {
             override fun onConfigured(s: CameraCaptureSession) {
                 if (gen != generation || state != State.OPEN) {
@@ -327,8 +458,8 @@ class CameraHost(context: Context, private val log: CaptureLog) {
                 }
                 session = s
                 try {
-                    s.setRepeatingRequest(previewRequest, null, h)
                     rawActive = attemptedRaw
+                    repeatPreview()
                     log.add("Session ready: preview + JPEG${if (attemptedRaw) " + RAW" else ""}.")
                     listener?.onSessionReady(attemptedRaw)
                 } catch (e: Exception) {
@@ -384,5 +515,7 @@ class CameraHost(context: Context, private val log: CaptureLog) {
     companion object {
         private const val JPEG_MAX_IMAGES = 3
         private const val RAW_MAX_IMAGES = 3
+        private const val PRECAPTURE_TIMEOUT_MS = 2000L
+        private const val PRECAPTURE_POLL_MS = 50L
     }
 }
