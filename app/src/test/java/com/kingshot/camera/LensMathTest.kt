@@ -24,13 +24,14 @@ class LensMathTest {
     }
 
     @Test fun ratioIsRelativeToReferenceLens() {
+        // The device itself reports a minimum zoom ratio of 0.6704 on the logical camera; the sensor-derived estimate must agree.
         val r = LensMath.opticalRatio(ultra, main)!!
-        assertEquals(0.5, r, 0.1)
+        assertEquals(0.6704, r, 0.02)
     }
 
     @Test fun classifiesOpticalAndDigitalStops() {
-        val stops = LensMath.stops(listOf(main, ultra), reference = "2", zoomRange = Pair(0.5f, 8f), digitalSteps = listOf(2f))
-        // Ultrawide ~0.5x optical, main 1x optical, 2x has no lens -> digital crop.
+        val stops = LensMath.stops(listOf(main, ultra), reference = "2", zoomRange = Pair(0.67f, 8f), digitalSteps = listOf(2f))
+        // Ultrawide ~0.67x optical, main 1x optical, 2x has no lens -> digital crop.
         assertEquals(listOf(ZoomKind.OPTICAL, ZoomKind.OPTICAL, ZoomKind.DIGITAL_CROP), stops.map { it.kind })
         assertEquals("3", stops[0].lensId)
         assertNull(stops[2].lensId)
