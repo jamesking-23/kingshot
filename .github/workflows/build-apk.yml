@@ -53,6 +53,15 @@ jobs:
             echo "::error::${l:0:380}"
           done
 
+      - name: Annotate dependency issues
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "Dependency '|requires|compileSdk|Android Gradle plugin|minCompileSdk|minAgp" build.log | sort -u | sed -n '1,14p' | while IFS= read -r l; do
+            l="${l//%/ pct }"
+            echo "::error::${l:0:380}"
+          done
+
       - name: Privacy gate - merged manifest must not request INTERNET
         run: |
           M=$(find app/build -path '*merged_manifest*' -name AndroidManifest.xml | head -n1)
