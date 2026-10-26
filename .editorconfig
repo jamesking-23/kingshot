@@ -26,3 +26,5 @@ ktlint_standard_parameter-list-wrapping = disabled
 ktlint_standard_class-signature = disabled
 ktlint_standard_spacing-between-declarations-with-annotations = disabled
 ktlint_standard_spacing-between-declarations-with-comments = disabled
+ktlint_function_naming_ignore_when_annotated_with = Composable
+ktlint_standard_property-naming = disabled
