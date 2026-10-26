@@ -9,7 +9,9 @@ import org.junit.Test
 class MeteringMathTest {
     private val active = Dim(4000, 3000)
 
-    private fun near(expected: Int, actual: Int, tolerance: Int) = assertTrue("expected $expected±$tolerance but was $actual", Math.abs(expected - actual) <= tolerance)
+    private fun near(expected: Int, actual: Int, tolerance: Int) {
+        assertTrue("expected $expected±$tolerance but was $actual", Math.abs(expected - actual) <= tolerance)
+    }
 
     @Test fun centerTapMapsToCenterOfSensor() {
         val r = MeteringMath.region(0.5f, 0.5f, 90, active, 1f)
