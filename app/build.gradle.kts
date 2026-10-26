@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.kingshot.camera"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.kingshot.camera" // placeholder until the name check (docs/ROADMAP.md)
