@@ -8,10 +8,10 @@ import android.os.PowerManager
 import android.os.SystemClock
 import com.kingshot.camera.camera.CameraHost
 import com.kingshot.camera.camera.CameraHostListener
-import com.kingshot.camera.camera.ImageHandle
-import com.kingshot.camera.camera.ImageKind
 import com.kingshot.camera.camera.HostControls
 import com.kingshot.camera.camera.HostMeter
+import com.kingshot.camera.camera.ImageHandle
+import com.kingshot.camera.camera.ImageKind
 import com.kingshot.camera.camera.StillRequestSpec
 import com.kingshot.camera.capabilities.CameraCapabilities
 import com.kingshot.camera.capabilities.Orientation
