@@ -9,7 +9,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | P1 | 2 | Choice: Natural, Computational, Custom capture profiles | 1 Natural / 2 Custom / 3 Computational* | profiles | profile validation unit tests | not started | - |
 | P2 | 2 | Truthfulness: show requested vs reported vs unavailable; never call a JPEG unprocessed | 0 | capture, diagnostics | receipt builder tests; copy lint | implemented | requested/reported/status model + receipts + UI disclosure; unit tests (DiagnosticsTest, StillRequestPlannerTest); unverified on device |
 | P3 | 2 | Preservation: never silently overwrite a source capture; original-plus-rendered | 2 | media | pairing and no-overwrite tests + instrumented MediaStore | not started | - |
-| P4 | 2 | Capability-aware UI: controls only when the active camera supports them | 1 | capabilities, UI | registry fixture tests; Compose UI tests | not started | - |
+| P4 | 2 | Capability-aware UI: controls only when the active camera supports them | 1 | capabilities, UI | registry fixture tests; Compose UI tests | implemented | Flash, EV, zoom strip and per-NR/Edge/RAW toggles appear only when the camera reports them (ControlPlanner, EvMath, LensMath tests); unverified on device |
 | P5 | 2 | Fast default path: open, one tap, saved photo | 1 | UI, capture | cold-start-to-first-frame benchmark | not started | - |
 | P6 | 2 | Privacy: local by default; AI/cloud only by explicit opt-in | 0 | all | CI merged-manifest INTERNET gate | implemented | INTERNET gate + no-network-API architecture test; CAMERA only; https://github.com/jamesking-23/kingshot/actions/runs/39354771975 |
 | P7 | 2 | Incremental engineering: prove pipeline before AI and video | all | - | phase gates | not started | - |
@@ -91,7 +91,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | R6 | 11 | Risk: Device-specific tuning creates maintenance burden (no per-model code without measurement + ADR) | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
 | R7 | 11 | Risk: UI must be tested with rotation, screen lock, calls, permissions, backgrounding | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
 | PH0 | 9 | Phase 0: Device feasibility: Camera Lab, capability report, test kit; gate = no minimal-processing claim without proof | 0 | - | phase report + gate | blocked | gate open: DV-001/002 partial on Pixel 7 (see VALIDATION_LOG); DV-003, DV-004 and the stock comparison outstanding |
-| PH1 | 9 | Phase 1: Core capture: preview, capture, lens, timer, EV, saving, lifecycle | 1 | - | phase report + gate | not started | - |
+| PH1 | 9 | Phase 1: Core capture: preview, capture, lens, timer, EV, saving, lifecycle | 1 | - | phase report + gate | implemented (partly) | Compose shell, controls and settings in CI-green build; thumbnail/capture list, Natural profile and lifecycle tests pending; DV-101..109 unverified (docs/phase1) |
 | PH2 | 9 | Phase 2: RAW and processing control: DNG reliability, profile persistence, logging, fallback UI, receipts | 2 | - | phase report + gate | not started | - |
 | PH3 | 9 | Phase 3: Rendering and computational: RAW renderer, pairing, HDR/denoise experiments, benchmarks | 3 | - | phase report + gate | not started | - |
 | PH4 | 9 | Phase 4: Advanced camera and video | 4 | - | phase report + gate | not started | - |
