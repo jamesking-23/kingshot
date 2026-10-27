@@ -8,7 +8,12 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.kingshot.camera.camera.CameraHost
 import com.kingshot.camera.camera.CharacteristicsReader
 import com.kingshot.camera.capabilities.CameraCapabilities
@@ -32,9 +37,14 @@ import com.kingshot.camera.media.SaveResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+private val Application.settingsStore by preferencesDataStore(name = "kingshot_settings")
 
 /**
  * Owns the camera session for the screen. The camera opens only when the screen is resumed, permission is granted and a
@@ -76,6 +86,43 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     init {
         LabState.log.onChanged = { publishLog() }
         publishLog()
+        loadSettings()
+    }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            try {
+                val p = getApplication<Application>().settingsStore.data.first()
+                _state.update {
+                    it.copy(
+                        gridOn = p[KEY_GRID] ?: it.gridOn,
+                        levelOn = p[KEY_LEVEL] ?: it.levelOn,
+                        timerSeconds = p[KEY_TIMER] ?: it.timerSeconds,
+                        requestNr = p[KEY_NR] ?: it.requestNr,
+                        requestEdge = p[KEY_EDGE] ?: it.requestEdge
+                    )
+                }
+            } catch (e: IOException) {
+                LabState.log.add("Settings could not be read; using defaults: ${e.message}")
+            }
+        }
+    }
+
+    private fun saveSettings() {
+        val s = _state.value
+        viewModelScope.launch {
+            try {
+                getApplication<Application>().settingsStore.edit {
+                    it[KEY_GRID] = s.gridOn
+                    it[KEY_LEVEL] = s.levelOn
+                    it[KEY_TIMER] = s.timerSeconds
+                    it[KEY_NR] = s.requestNr
+                    it[KEY_EDGE] = s.requestEdge
+                }
+            } catch (e: IOException) {
+                LabState.log.add("Settings could not be saved: ${e.message}")
+            }
+        }
     }
 
     override fun onCleared() {
@@ -152,7 +199,10 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         _state.update { it.copy(countdownLeft = 0) }
     }
 
-    fun setTimer(seconds: Int) = _state.update { it.copy(timerSeconds = seconds) }
+    fun setTimer(seconds: Int) {
+        _state.update { it.copy(timerSeconds = seconds) }
+        saveSettings()
+    }
 
     fun cycleTimer() = setTimer(
         when (_state.value.timerSeconds) {
@@ -192,9 +242,15 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         pushControls()
     }
 
-    fun toggleGrid() = _state.update { it.copy(gridOn = !it.gridOn) }
+    fun toggleGrid() {
+        _state.update { it.copy(gridOn = !it.gridOn) }
+        saveSettings()
+    }
 
-    fun toggleLevel() = _state.update { it.copy(levelOn = !it.levelOn, rollDegrees = null) }
+    fun toggleLevel() {
+        _state.update { it.copy(levelOn = !it.levelOn, rollDegrees = null) }
+        saveSettings()
+    }
 
     fun toggleLab() = _state.update { it.copy(showLab = !it.showLab) }
 
@@ -228,9 +284,15 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         plan.notes.forEach { LabState.log.add(it) }
     }
 
-    fun setRequestNr(v: Boolean) = _state.update { it.copy(requestNr = v) }
+    fun setRequestNr(v: Boolean) {
+        _state.update { it.copy(requestNr = v) }
+        saveSettings()
+    }
 
-    fun setRequestEdge(v: Boolean) = _state.update { it.copy(requestEdge = v) }
+    fun setRequestEdge(v: Boolean) {
+        _state.update { it.copy(requestEdge = v) }
+        saveSettings()
+    }
 
     fun setIncludeSamples(v: Boolean) = _state.update { it.copy(includeSamples = v) }
 
@@ -303,6 +365,10 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     override fun onRawActive(active: Boolean) {
         _state.update { it.copy(rawActive = active, wantRaw = if (it.wantRaw && !active) false else it.wantRaw, cameraReady = true) }
+    }
+
+    override fun onLowLight(advisory: String?) {
+        _state.update { it.copy(lowLight = advisory) }
     }
 
     override fun onProblem(message: String) {
@@ -411,6 +477,11 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     companion object {
         private const val MAX_LOG_LINES = 80
+        private val KEY_GRID = booleanPreferencesKey("grid")
+        private val KEY_LEVEL = booleanPreferencesKey("level")
+        private val KEY_TIMER = intPreferencesKey("timer_seconds")
+        private val KEY_NR = booleanPreferencesKey("request_nr_off")
+        private val KEY_EDGE = booleanPreferencesKey("request_edge_off")
         private const val TICK_MS = 100L
         private const val FOCUS_INDICATOR_MS = 1500L
         private const val LEVEL_ALPHA = 0.2

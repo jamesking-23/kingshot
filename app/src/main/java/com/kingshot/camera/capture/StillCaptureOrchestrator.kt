@@ -39,6 +39,9 @@ interface LabEvents {
     fun onPreviewSize(width: Int, height: Int)
     fun onRawActive(active: Boolean)
     fun onProblem(message: String)
+
+    /** Plain-language report of what the camera measured, or null when the scene was not a low-light one. */
+    fun onLowLight(advisory: String?)
 }
 
 /** Process-lifetime results the UI and the diagnostics bundle read. */
@@ -202,6 +205,9 @@ class StillCaptureOrchestrator(
         }
         log.add("Exposure: ${exposure.exposureTimeNs} ns, ISO ${exposure.iso} (post-RAW boost ${exposure.postRawSensitivityBoost})")
         log.add("States: AE ${exposure.aeState}, AF ${exposure.afState}, AWB ${exposure.awbState}")
+        val advisory = LowLightAdvisor.advisory(exposure.exposureTimeNs, exposure.iso)
+        advisory?.let { log.add(it) }
+        events.onLowLight(advisory)
 
         val ts = result.get(CaptureResult.SENSOR_TIMESTAMP)
         if (ts == null) {

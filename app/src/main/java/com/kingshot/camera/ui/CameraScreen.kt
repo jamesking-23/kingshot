@@ -76,6 +76,13 @@ fun CameraScreen(vm: CameraViewModel, deviceDegrees: () -> Int, onShare: (androi
     Column(Modifier.fillMaxSize().background(Palette.Background)) {
         TopBar(state, vm)
         PreviewArea(state, vm, Modifier.weight(1f))
+        state.lowLight?.let {
+            BasicText(
+                it,
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                style = TextStyle(color = Palette.Accent, fontSize = 12.sp)
+            )
+        }
         if (state.zoomChoices.isNotEmpty()) ZoomStrip(state, vm)
         if (state.evAvailable) EvRow(state, vm)
         Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.Center) {

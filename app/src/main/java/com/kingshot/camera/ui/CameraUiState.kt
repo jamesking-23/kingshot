@@ -32,6 +32,7 @@ data class CameraUiState(
     val rollDegrees: Double? = null,
     val focusPoint: Pair<Float, Float>? = null,
     val showLab: Boolean = false,
+    val lowLight: String? = null,
     val logLines: List<String> = emptyList(),
     val message: String? = null,
     val shareUri: Uri? = null
