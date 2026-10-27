@@ -3,6 +3,7 @@ package com.kingshot.camera
 import com.kingshot.camera.capabilities.LensInfo
 import com.kingshot.camera.capabilities.LensMath
 import com.kingshot.camera.capabilities.ZoomKind
+import com.kingshot.camera.capabilities.ZoomStop
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -44,5 +45,17 @@ class LensMathTest {
 
     @Test fun noZoomRangeMeansNoZoomStops() {
         assertEquals(emptyList<Any>(), LensMath.stops(listOf(main), reference = "2", zoomRange = null, digitalSteps = listOf(2f)))
+    }
+
+    @Test fun referenceLensComesFromReportedMinimumZoom() {
+        assertEquals("2", LensMath.referenceFor(listOf(ultra, main), 0.6704f))
+        assertNull(LensMath.referenceFor(listOf(ultra, main), null))
+        assertNull(LensMath.referenceFor(emptyList(), 0.67f))
+    }
+
+    @Test fun labelsSeparateLensFromCrop() {
+        assertEquals("0.7× lens", LensMath.label(ZoomStop(0.67f, ZoomKind.OPTICAL, "3")))
+        assertEquals("1× lens", LensMath.label(ZoomStop(1f, ZoomKind.OPTICAL, "2")))
+        assertEquals("2× crop", LensMath.label(ZoomStop(2f, ZoomKind.DIGITAL_CROP, null)))
     }
 }

@@ -13,7 +13,14 @@ import com.kingshot.camera.camera.CameraHost
 import com.kingshot.camera.camera.CharacteristicsReader
 import com.kingshot.camera.capabilities.CameraCapabilities
 import com.kingshot.camera.capabilities.CameraSelector
+import com.kingshot.camera.capabilities.EvMath
+import com.kingshot.camera.capabilities.LensInfo
+import com.kingshot.camera.capabilities.LensMath
+import com.kingshot.camera.capture.ControlRequest
+import com.kingshot.camera.capture.Countdown
+import com.kingshot.camera.capture.FlashMode
 import com.kingshot.camera.capture.LabEvents
+import com.kingshot.camera.capture.LevelMath
 import com.kingshot.camera.capture.ProcessingChoice
 import com.kingshot.camera.capture.StillCaptureOrchestrator
 import com.kingshot.camera.diagnostics.AppInfo
@@ -46,6 +53,25 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     private var resumedAtMs = 0L
     private var firstFrameLogged = false
     private var discoveryToken = 0
+    private var evMath: EvMath? = null
+    private var countdownStartMs = 0L
+    private var countdown: Countdown? = null
+    private var pendingDegrees = 0
+    private val clearFocus = Runnable { _state.update { it.copy(focusPoint = null) } }
+    private val countdownTick = object : Runnable {
+        override fun run() {
+            val cd = countdown ?: return
+            val elapsed = SystemClock.elapsedRealtime() - countdownStartMs
+            if (cd.finished(elapsed)) {
+                countdown = null
+                _state.update { it.copy(countdownLeft = 0) }
+                shoot(pendingDegrees)
+            } else {
+                _state.update { it.copy(countdownLeft = cd.secondsLeft(elapsed)) }
+                mainHandler.postDelayed(this, TICK_MS)
+            }
+        }
+    }
 
     init {
         LabState.log.onChanged = { publishLog() }
@@ -97,9 +123,109 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     // ------------------------------------------------------------ user actions
 
+    /** Shutter button: starts the self-timer if one is set (a second press cancels it), otherwise shoots now. */
     fun takePhoto(deviceDegrees: Int) {
+        if (countdown != null) {
+            cancelCountdown()
+            return
+        }
+        val seconds = _state.value.timerSeconds
+        if (seconds <= 0) {
+            shoot(deviceDegrees)
+            return
+        }
+        pendingDegrees = deviceDegrees
+        countdown = Countdown(seconds)
+        countdownStartMs = SystemClock.elapsedRealtime()
+        _state.update { it.copy(countdownLeft = seconds) }
+        mainHandler.postDelayed(countdownTick, TICK_MS)
+    }
+
+    private fun shoot(deviceDegrees: Int) {
         val s = _state.value
         orchestrator?.takePhoto(ProcessingChoice(s.nrAvailable && s.requestNr, s.edgeAvailable && s.requestEdge), deviceDegrees)
+    }
+
+    private fun cancelCountdown() {
+        countdown = null
+        mainHandler.removeCallbacks(countdownTick)
+        _state.update { it.copy(countdownLeft = 0) }
+    }
+
+    fun setTimer(seconds: Int) = _state.update { it.copy(timerSeconds = seconds) }
+
+    fun cycleTimer() = setTimer(
+        when (_state.value.timerSeconds) {
+            0 -> 3
+            3 -> 10
+            else -> 0
+        }
+    )
+
+    fun cycleFlash() {
+        val s = _state.value
+        if (!s.flashAvailable) return
+        val next = when (s.flash) {
+            FlashMode.OFF -> FlashMode.AUTO
+            FlashMode.AUTO -> FlashMode.ON
+            FlashMode.ON -> FlashMode.OFF
+        }
+        _state.update { it.copy(flash = next) }
+        pushControls()
+    }
+
+    fun stepEv(delta: Int) {
+        val m = evMath ?: return
+        val idx = m.clamp(_state.value.evIndex + delta)
+        _state.update { it.copy(evIndex = idx, evLabel = m.label(idx)) }
+        pushControls()
+    }
+
+    fun resetEv() {
+        val m = evMath ?: return
+        _state.update { it.copy(evIndex = 0, evLabel = m.label(0)) }
+        pushControls()
+    }
+
+    fun setZoom(ratio: Float) {
+        _state.update { it.copy(zoomRatio = ratio) }
+        pushControls()
+    }
+
+    fun toggleGrid() = _state.update { it.copy(gridOn = !it.gridOn) }
+
+    fun toggleLevel() = _state.update { it.copy(levelOn = !it.levelOn, rollDegrees = null) }
+
+    fun toggleLab() = _state.update { it.copy(showLab = !it.showLab) }
+
+    /** Accelerometer sample in the device frame (portrait-locked screen). */
+    fun onGravity(ax: Float, ay: Float, az: Float) {
+        val raw = LevelMath.rollOrNull(ax, ay, az)
+        _state.update { s ->
+            val smoothed = when {
+                raw == null -> null
+                s.rollDegrees == null -> raw
+                else -> LevelMath.smooth(s.rollDegrees, raw, LEVEL_ALPHA)
+            }
+            val prev = s.rollDegrees
+            val unchanged = smoothed == prev || (smoothed != null && prev != null && Math.abs(smoothed - prev) < LEVEL_MIN_CHANGE)
+            if (unchanged) s else s.copy(rollDegrees = smoothed)
+        }
+    }
+
+    /** Tap on the preview; coordinates are 0..1 across and down the visible preview. */
+    fun onTap(nx: Float, ny: Float) {
+        if (!_state.value.cameraReady) return
+        orchestrator?.focusAt(nx, ny)
+        _state.update { it.copy(focusPoint = Pair(nx, ny)) }
+        mainHandler.removeCallbacks(clearFocus)
+        mainHandler.postDelayed(clearFocus, FOCUS_INDICATOR_MS)
+    }
+
+    private fun pushControls() {
+        val s = _state.value
+        val plan = orchestrator?.setControls(ControlRequest(s.evIndex, s.zoomRatio, s.flash)) ?: return
+        plan.notes.forEach { LabState.log.add(it) }
     }
 
     fun setRequestNr(v: Boolean) = _state.update { it.copy(requestNr = v) }
@@ -239,10 +365,40 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
             )
         }
         o.activeCapabilities = rear
+        applyCapabilityUi(rear)
+        o.setControls(ControlRequest())
         h.open(rear, tex, _state.value.wantRaw && rear.supportsRaw())
     }
 
+    private fun applyCapabilityUi(rear: CameraCapabilities) {
+        val ev = EvMath.from(rear.aeCompensationRange, rear.aeCompensationStep)
+        evMath = ev
+        val cams = LabState.cameras
+        val lenses = rear.physicalIds
+            .mapNotNull { id -> cams.firstOrNull { it.cameraId == id && it.physicalOf == rear.cameraId } }
+            .mapNotNull { lensOf(it) }
+            .ifEmpty { listOfNotNull(lensOf(rear)) }
+        val reference = if (lenses.size == 1) lenses[0].id else LensMath.referenceFor(lenses, rear.zoomRatioRange?.first)
+        val stops = if (reference == null) emptyList() else LensMath.stops(lenses, reference, rear.zoomRatioRange, DIGITAL_STEPS)
+        val flashOk = rear.flashAvailable == true && (2 in rear.aeModes || 3 in rear.aeModes)
+        _state.update {
+            it.copy(
+                evAvailable = ev != null, evIndex = 0, evLabel = ev?.label(0) ?: "",
+                flashAvailable = flashOk, flash = FlashMode.OFF,
+                zoomChoices = stops.map { st -> ZoomChoice(LensMath.label(st), st.ratio) },
+                zoomRatio = 1f
+            )
+        }
+    }
+
+    private fun lensOf(c: CameraCapabilities): LensInfo? {
+        val size = LensMath.parseSize(c.physicalSizeMm) ?: return null
+        val focal = c.focalLengthsMm.firstOrNull() ?: return null
+        return LensInfo(c.cameraId, focal, size.first, size.second)
+    }
+
     private fun closeCamera() {
+        cancelCountdown()
         val h = host
         val o = orchestrator
         host = null
@@ -255,5 +411,10 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     companion object {
         private const val MAX_LOG_LINES = 80
+        private const val TICK_MS = 100L
+        private const val FOCUS_INDICATOR_MS = 1500L
+        private const val LEVEL_ALPHA = 0.2
+        private const val LEVEL_MIN_CHANGE = 0.1
+        private val DIGITAL_STEPS = listOf(2f, 5f)
     }
 }

@@ -112,9 +112,9 @@ class StillCaptureOrchestrator(
 
     /** Applies EV, zoom, flash mode and any metering region to the live preview, each checked against the camera's capabilities. */
     fun setControls(request: ControlRequest): ControlPlan? {
-        controlRequest = request
+        controlRequest = request.copy(meter = controlRequest.meter)
         val caps = activeCapabilities ?: return null
-        val plan = ControlPlanner.plan(caps, request)
+        val plan = ControlPlanner.plan(caps, controlRequest)
         host.setControls(toHost(plan))
         return plan
     }

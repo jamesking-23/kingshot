@@ -63,9 +63,9 @@ fun ActionButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifi
             .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
             .background(if (enabled) Palette.Button else Palette.Panel, RoundedCornerShape(8.dp))
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        BasicText(label, style = TextStyle(color = if (enabled) Palette.Text else Palette.Disabled, fontSize = 15.sp))
+        BasicText(label, style = TextStyle(color = if (enabled) Palette.Text else Palette.Disabled, fontSize = 13.sp))
     }
 }

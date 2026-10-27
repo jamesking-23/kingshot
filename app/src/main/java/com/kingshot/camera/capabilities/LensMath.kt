@@ -15,6 +15,13 @@ object LensMath {
     private const val FULL_FRAME_DIAGONAL_MM = 43.27f
     private const val SAME_STOP_TOLERANCE = 0.08f
 
+    /** Strip label that never calls a crop optical: "0.7× lens", "1× lens", "2× crop". */
+    fun label(stop: ZoomStop): String {
+        val r = Math.round(stop.ratio * 10f) / 10f
+        val n = if (r == Math.floor(r.toDouble()).toFloat()) r.toInt().toString() else r.toString()
+        return if (stop.kind == ZoomKind.OPTICAL) "$n× lens" else "$n× crop"
+    }
+
     fun parseSize(text: String?): Pair<Float, Float>? {
         val parts = text?.split("x") ?: return null
         if (parts.size != 2) return null
@@ -35,6 +42,18 @@ object LensMath {
         val a = equivalentMm(lens) ?: return null
         val b = equivalentMm(reference) ?: return null
         return a / b
+    }
+
+    /**
+     * The lens that sits at zoom ratio 1.0: the one whose 35 mm-equivalent focal length is closest to (widest lens / reported minimum zoom).
+     * Derived from the camera's own reported zoom range, not from a model name. Null when it cannot be derived.
+     */
+    fun referenceFor(lenses: List<LensInfo>, minZoom: Float?): String? {
+        if (minZoom == null || minZoom <= 0f) return null
+        val eq = lenses.mapNotNull { l -> equivalentMm(l)?.let { l to it } }
+        val widest = eq.minByOrNull { it.second } ?: return null
+        val target = widest.second / minZoom
+        return eq.minByOrNull { Math.abs(it.second - target) }?.first?.id
     }
 
     /**
