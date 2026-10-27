@@ -4,12 +4,12 @@ import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.graphics.SurfaceTexture
 import android.net.Uri
-import android.util.Size
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import android.util.Size
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
