@@ -192,7 +192,11 @@ private fun ZoomStrip(state: CameraUiState, vm: CameraViewModel) {
 
 @Composable
 private fun EvRow(state: CameraUiState, vm: CameraViewModel) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         ActionButton("−", { vm.stepEv(-1) })
         BasicText(
             state.evLabel,
@@ -225,7 +229,11 @@ private fun LabPanel(state: CameraUiState, vm: CameraViewModel) {
             stringResource(R.string.raw_dng) + if (state.rawAvailable) "" else stringResource(R.string.raw_unavailable_suffix),
             state.wantRaw && state.rawAvailable, state.rawAvailable, vm::setWantRaw
         )
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             ToggleRow(stringResource(R.string.include_samples), state.includeSamples, true, vm::setIncludeSamples, Modifier.weight(1f))
             ActionButton(stringResource(R.string.export_bundle), onClick = { vm.exportBundle() })
         }
