@@ -28,6 +28,7 @@ import com.kingshot.camera.capture.Countdown
 import com.kingshot.camera.capture.FlashMode
 import com.kingshot.camera.capture.LabEvents
 import com.kingshot.camera.capture.LevelMath
+import com.kingshot.camera.capture.OpenGate
 import com.kingshot.camera.capture.ProcessingChoice
 import com.kingshot.camera.capture.StillCaptureOrchestrator
 import com.kingshot.camera.diagnostics.AppInfo
@@ -62,8 +63,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     private var host: CameraHost? = null
     private var orchestrator: StillCaptureOrchestrator? = null
     private var texture: SurfaceTexture? = null
-    private var resumed = false
-    private var permissionGranted = false
+    private val gate = OpenGate()
     private var resumedAtMs = 0L
     private var firstFrameLogged = false
     private var discoveryToken = 0
@@ -138,30 +138,31 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     // ------------------------------------------------------------ lifecycle inputs
 
     fun onResume(permissionGranted: Boolean) {
-        resumed = true
-        this.permissionGranted = permissionGranted
+        gate.onResume(permissionGranted)
         resumedAtMs = SystemClock.elapsedRealtime()
         firstFrameLogged = false
         maybeOpen()
     }
 
     fun onPause() {
-        resumed = false
+        gate.onPause()
         closeCamera()
     }
 
     fun onPermissionResult(granted: Boolean) {
-        permissionGranted = granted
+        gate.onPermission(granted)
         if (granted) maybeOpen() else LabState.log.add("Camera permission denied. The camera cannot run without it.")
     }
 
     fun onSurfaceAvailable(st: SurfaceTexture) {
         texture = st
+        gate.onSurface(true)
         maybeOpen()
     }
 
     fun onSurfaceDestroyed() {
         texture = null
+        gate.onSurface(false)
         closeCamera()
     }
 
@@ -411,8 +412,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     }
 
     private fun maybeOpen() {
-        if (!resumed || !permissionGranted || host != null) return
-        if (texture == null) return
+        if (!gate.wantOpen || host != null || texture == null) return
         val app = getApplication<Application>()
         val h = CameraHost(app, LabState.log)
         val o = StillCaptureOrchestrator(
