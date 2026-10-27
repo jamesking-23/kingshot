@@ -47,7 +47,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | M7 | 5 | Module `profiles`: Natural / Computational / Custom settings | 0-3 | profiles | validation tests | not started | prototype partial: PROTOTYPE_AUDIT #21 (monolith) |
 | M8 | 5 | Module `diagnostics`: Device/build/capability report, capture logs, exportable bundle | 0-3 | diagnostics | report schema tests | device-verified | report, receipts, log and bundle export + share worked on Pixel 7; DV-001 |
 | M9 | 5 (prompt s5) | Architecture test enforces module dependency direction | 0 | all | architecture test (JVM) | unit-verified | ArchitectureTest https://github.com/jamesking-23/kingshot/actions/runs/39354771975 |
-| PR1 | 5 | Profile Natural: request supported minimal controls, keep AF/AE, no creative effects, disclose JPEG may be processed | 1 | profiles | validation tests | not started | Natural profile arrives Phase 1; Lab uses profile name 'lab' |
+| PR1 | 5 | Profile Natural: request supported minimal controls, keep AF/AE, no creative effects, disclose JPEG may be processed | 1 | profiles | validation tests | implemented | NaturalProfile + tests; receipts still say profile "lab"; unverified on device |
 | PR2 | 5 | Profile Computational: supported OEM extension or own multi-frame; keep original frames if preservation on | 3 | profiles, processing | benchmarks | not started | - |
 | PR3 | 5 | Profile Custom: independent format/controls/renderer settings validated before capture | 2 | profiles | validation tests | not started | - |
 | UI1 | 6 Main camera | Top bar: identity, flash, timer, settings | 1 | UI | Compose UI tests | not started | - |
@@ -91,7 +91,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | R6 | 11 | Risk: Device-specific tuning creates maintenance burden (no per-model code without measurement + ADR) | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
 | R7 | 11 | Risk: UI must be tested with rotation, screen lock, calls, permissions, backgrounding | 0-4 | - | mitigation tracked in ROADMAP | not started | - |
 | PH0 | 9 | Phase 0: Device feasibility: Camera Lab, capability report, test kit; gate = no minimal-processing claim without proof | 0 | - | phase report + gate | blocked | gate open: DV-001/002 partial on Pixel 7 (see VALIDATION_LOG); DV-003, DV-004 and the stock comparison outstanding |
-| PH1 | 9 | Phase 1: Core capture: preview, capture, lens, timer, EV, saving, lifecycle | 1 | - | phase report + gate | implemented (partly) | Compose shell, controls and settings in CI-green build; thumbnail/capture list, Natural profile and lifecycle tests pending; DV-101..109 unverified (docs/phase1) |
+| PH1 | 9 | Phase 1: Core capture: preview, capture, lens, timer, EV, saving, lifecycle | 1 | - | phase report + gate | implemented (gate open) | All Phase 1 items built, CI green; DV-101..109 unverified; see docs/phase1/PHASE1_REPORT.md |
 | PH2 | 9 | Phase 2: RAW and processing control: DNG reliability, profile persistence, logging, fallback UI, receipts | 2 | - | phase report + gate | not started | - |
 | PH3 | 9 | Phase 3: Rendering and computational: RAW renderer, pairing, HDR/denoise experiments, benchmarks | 3 | - | phase report + gate | not started | - |
 | PH4 | 9 | Phase 4: Advanced camera and video | 4 | - | phase report + gate | not started | - |
