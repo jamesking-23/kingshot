@@ -10,16 +10,20 @@ import android.view.MotionEvent
 import android.view.TextureView
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
@@ -29,10 +33,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -46,7 +53,12 @@ import com.kingshot.camera.capture.FlashMode
 import com.kingshot.camera.capture.LevelMath
 
 @Composable
-fun CameraScreen(vm: CameraViewModel, deviceDegrees: () -> Int, onShare: (android.net.Uri) -> Unit) {
+fun CameraScreen(
+    vm: CameraViewModel,
+    deviceDegrees: () -> Int,
+    onShare: (android.net.Uri) -> Unit,
+    onOpen: (android.net.Uri) -> Unit
+) {
     val state = vm.state.collectAsStateWithLifecycle().value
     val context = LocalContext.current
 
@@ -60,6 +72,12 @@ fun CameraScreen(vm: CameraViewModel, deviceDegrees: () -> Int, onShare: (androi
         state.shareUri?.let {
             onShare(it)
             vm.onShareHandled()
+        }
+    }
+    LaunchedEffect(state.openUri) {
+        state.openUri?.let {
+            onOpen(it)
+            vm.onOpenHandled()
         }
     }
     DisposableEffect(state.levelOn) {
@@ -76,6 +94,11 @@ fun CameraScreen(vm: CameraViewModel, deviceDegrees: () -> Int, onShare: (androi
     Column(Modifier.fillMaxSize().background(Palette.Background)) {
         TopBar(state, vm)
         PreviewArea(state, vm, Modifier.weight(1f))
+        BasicText(
+            "Profile: ${state.profileLabel}",
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            style = TextStyle(color = Palette.Muted, fontSize = 12.sp)
+        )
         state.lowLight?.let {
             BasicText(
                 it,
@@ -85,14 +108,27 @@ fun CameraScreen(vm: CameraViewModel, deviceDegrees: () -> Int, onShare: (androi
         }
         if (state.zoomChoices.isNotEmpty()) ZoomStrip(state, vm)
         if (state.evAvailable) EvRow(state, vm)
-        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.Center) {
+        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            val latest = state.photos.firstOrNull()
+            val thumb = state.thumbnail
+            if (latest != null && thumb != null) {
+                Image(
+                    bitmap = thumb.asImageBitmap(),
+                    contentDescription = "Open latest photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(56.dp).clickable(role = Role.Button) { vm.openPhoto(latest.uri) }
+                )
+            } else {
+                Spacer(Modifier.size(56.dp))
+            }
             val cancelling = state.countdownLeft > 0
             ActionButton(
                 if (cancelling) "Cancel timer" else stringResource(R.string.capture),
                 onClick = { vm.takePhoto(deviceDegrees()) },
-                modifier = Modifier.fillMaxWidth(0.6f),
+                modifier = Modifier.weight(1f),
                 enabled = state.cameraReady
             )
+            Spacer(Modifier.size(56.dp))
         }
         if (state.showLab) LabPanel(state, vm)
     }
@@ -220,7 +256,7 @@ private fun LabPanel(state: CameraUiState, vm: CameraViewModel) {
     val scroll = rememberScrollState()
     Column(Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(scroll)) {
         BasicText(
-            stringResource(R.string.disclosure),
+            state.profileDisclosure.ifEmpty { stringResource(R.string.disclosure) } + "\n" + stringResource(R.string.disclosure),
             modifier = Modifier.fillMaxWidth().padding(8.dp),
             style = TextStyle(color = Palette.Muted, fontSize = 12.sp)
         )
@@ -243,6 +279,12 @@ private fun LabPanel(state: CameraUiState, vm: CameraViewModel) {
         ) {
             ToggleRow(stringResource(R.string.include_samples), state.includeSamples, true, vm::setIncludeSamples, Modifier.weight(1f))
             ActionButton(stringResource(R.string.export_bundle), onClick = { vm.exportBundle() })
+        }
+        if (state.photos.isNotEmpty()) {
+            BasicText("Recent photos", Modifier.padding(horizontal = 8.dp), style = TextStyle(color = Palette.Muted, fontSize = 12.sp))
+            state.photos.forEach { ph ->
+                ActionButton(ph.name, { vm.openPhoto(ph.uri) }, Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp))
+            }
         }
         Box(Modifier.fillMaxWidth().background(Palette.Panel).padding(8.dp)) {
             BasicText(

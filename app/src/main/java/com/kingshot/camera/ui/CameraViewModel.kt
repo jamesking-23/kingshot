@@ -3,6 +3,8 @@ package com.kingshot.camera.ui
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.graphics.SurfaceTexture
+import android.net.Uri
+import android.util.Size
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -34,6 +36,8 @@ import com.kingshot.camera.diagnostics.CapabilityReport
 import com.kingshot.camera.diagnostics.DeviceInfo
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
+import com.kingshot.camera.profiles.NaturalProfile
+import com.kingshot.camera.profiles.ProfileName
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -278,6 +282,14 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         mainHandler.postDelayed(clearFocus, FOCUS_INDICATOR_MS)
     }
 
+    private fun refreshProfile(caps: CameraCapabilities? = orchestrator?.activeCapabilities) {
+        val c = caps ?: return
+        val s = _state.value
+        _state.update {
+            it.copy(profileLabel = ProfileName.of(c, s.requestNr, s.requestEdge).label, profileDisclosure = NaturalProfile.DISCLOSURE)
+        }
+    }
+
     private fun pushControls() {
         val s = _state.value
         val plan = orchestrator?.setControls(ControlRequest(s.evIndex, s.zoomRatio, s.flash)) ?: return
@@ -286,11 +298,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     fun setRequestNr(v: Boolean) {
         _state.update { it.copy(requestNr = v) }
+        refreshProfile()
         saveSettings()
     }
 
     fun setRequestEdge(v: Boolean) {
         _state.update { it.copy(requestEdge = v) }
+        refreshProfile()
         saveSettings()
     }
 
@@ -367,6 +381,21 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         _state.update { it.copy(rawActive = active, wantRaw = if (it.wantRaw && !active) false else it.wantRaw, cameraReady = true) }
     }
 
+    override fun onPhotoSaved(uri: Uri, name: String) {
+        val app = getApplication<Application>()
+        val bmp = try {
+            app.contentResolver.loadThumbnail(uri, Size(THUMB_PX, THUMB_PX), null)
+        } catch (e: java.io.IOException) {
+            LabState.log.add("Thumbnail could not be loaded: ${e.message}")
+            null
+        }
+        _state.update { it.copy(thumbnail = bmp ?: it.thumbnail, photos = (listOf(PhotoItem(name, uri)) + it.photos).take(MAX_PHOTOS)) }
+    }
+
+    fun openPhoto(uri: Uri) = _state.update { it.copy(openUri = uri) }
+
+    fun onOpenHandled() = _state.update { it.copy(openUri = null) }
+
     override fun onLowLight(advisory: String?) {
         _state.update { it.copy(lowLight = advisory) }
     }
@@ -432,6 +461,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         }
         o.activeCapabilities = rear
         applyCapabilityUi(rear)
+        refreshProfile(rear)
         o.setControls(ControlRequest())
         h.open(rear, tex, _state.value.wantRaw && rear.supportsRaw())
     }
@@ -482,6 +512,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         private val KEY_TIMER = intPreferencesKey("timer_seconds")
         private val KEY_NR = booleanPreferencesKey("request_nr_off")
         private val KEY_EDGE = booleanPreferencesKey("request_edge_off")
+        private const val THUMB_PX = 160
+        private const val MAX_PHOTOS = 20
         private const val TICK_MS = 100L
         private const val FOCUS_INDICATOR_MS = 1500L
         private const val LEVEL_ALPHA = 0.2

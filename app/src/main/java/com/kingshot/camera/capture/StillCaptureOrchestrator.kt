@@ -42,6 +42,9 @@ interface LabEvents {
 
     /** Plain-language report of what the camera measured, or null when the scene was not a low-light one. */
     fun onLowLight(advisory: String?)
+
+    /** A JPEG was saved to MediaStore. */
+    fun onPhotoSaved(uri: Uri, name: String)
 }
 
 /** Process-lifetime results the UI and the diagnostics bundle read. */
@@ -290,6 +293,7 @@ class StillCaptureOrchestrator(
                     rec.assembler.onOutputSaved(OutputRecord("jpeg", "JPEG", r.uri.toString(), "${image.width}x${image.height}", r.bytes), monotonicMs())
                     results.lastJpegUri = r.uri
                     results.lastJpegName = name
+                    events.onPhotoSaved(r.uri, name)
                     log.add("Saved JPEG Pictures/KingShot/$name (${r.bytes / 1024} KB)")
                 }
                 is SaveResult.Failed -> {

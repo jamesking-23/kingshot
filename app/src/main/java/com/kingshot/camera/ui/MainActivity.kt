@@ -1,12 +1,14 @@
 package com.kingshot.camera.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.Surface
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,7 +21,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { CameraScreen(vm, ::deviceDegrees, ::share) }
+        setContent { CameraScreen(vm, ::deviceDegrees, ::share, ::openPhoto) }
     }
 
     override fun onResume() {
@@ -39,6 +41,18 @@ class MainActivity : ComponentActivity() {
         Surface.ROTATION_180 -> 180
         Surface.ROTATION_270 -> 270
         else -> 0
+    }
+
+    private fun openPhoto(uri: Uri) {
+        val view = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "image/jpeg")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(view)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "No app can open this photo. It is saved in Pictures/KingShot.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun share(uri: Uri) {

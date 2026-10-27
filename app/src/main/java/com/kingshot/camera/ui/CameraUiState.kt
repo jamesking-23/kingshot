@@ -1,7 +1,10 @@
 package com.kingshot.camera.ui
 
+import android.graphics.Bitmap
 import android.net.Uri
 import com.kingshot.camera.capture.FlashMode
+
+data class PhotoItem(val name: String, val uri: Uri)
 
 data class ZoomChoice(val label: String, val ratio: Float)
 
@@ -32,6 +35,11 @@ data class CameraUiState(
     val rollDegrees: Double? = null,
     val focusPoint: Pair<Float, Float>? = null,
     val showLab: Boolean = false,
+    val thumbnail: Bitmap? = null,
+    val photos: List<PhotoItem> = emptyList(),
+    val profileLabel: String = "Natural",
+    val profileDisclosure: String = "",
+    val openUri: Uri? = null,
     val lowLight: String? = null,
     val logLines: List<String> = emptyList(),
     val message: String? = null,
