@@ -18,9 +18,14 @@ object SelfCheck {
         } else {
             Check("JPEG saved for every photo", CheckResult.FAIL, "Missing for ${unsaved.joinToString { it.captureId }}.")
         }
-        val differing = receipts.flatMap { r -> r.controls.filter { it.status == ControlStatus.DIFFERS }.map { "${r.captureId} ${it.name}" } }
+        val differing = receipts.flatMap { r ->
+            r.controls.filter { it.status == ControlStatus.DIFFERS }.map { "${r.captureId} ${it.name}" }
+        }
         out += if (differing.isEmpty()) {
-            Check("Processing requests match what the device reported", CheckResult.PASS, "No request came back different. This does not prove untouched pixels.")
+            Check(
+                "Processing requests match what the device reported", CheckResult.PASS,
+                "No request came back different. This does not prove untouched pixels."
+            )
         } else {
             Check("Processing requests match what the device reported", CheckResult.FAIL, "Differed: ${differing.joinToString()}.")
         }
@@ -45,7 +50,8 @@ object SelfCheck {
             Check("Zoom positions applied", CheckResult.SKIPPED, "Fewer than two zoom positions on this camera.")
         }
         val physical = receipts.mapNotNull { it.activePhysicalId }.toSet()
-        out += Check("Active lens reported", if (physical.isEmpty()) CheckResult.SKIPPED else CheckResult.PASS, "Active physical cameras seen: ${physical.sorted()}.")
+        val lensResult = if (physical.isEmpty()) CheckResult.SKIPPED else CheckResult.PASS
+        out += Check("Active lens reported", lensResult, "Active physical cameras seen: ${physical.sorted()}.")
         out += if (plan.raw) {
             val missing = receipts.filter { r -> r.outputs.none { it.role == "source_raw" } }
             if (missing.isEmpty()) {
