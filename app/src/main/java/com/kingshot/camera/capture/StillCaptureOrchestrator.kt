@@ -320,7 +320,8 @@ class StillCaptureOrchestrator(
             }
             val exif = Orientation.exifFromDegrees(rec.jpegOrientation)
             val physical = completed.result.get(CaptureResult.LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_ID)
-            log.add("DNG uses the characteristics of camera ${activeCapabilities?.cameraId ?: "?"}${physical?.let { " (result reports active physical camera $it)" } ?: ""}.")
+            val physicalNote = physical?.let { " (result reports active physical camera $it)" } ?: ""
+            log.add("DNG uses the characteristics of camera ${activeCapabilities?.cameraId ?: "?"}$physicalNote.")
             val name = "${completed.captureId}.dng"
             when (val r = saver.saveImage(name, "image/x-adobe-dng") { out -> DngWriter.write(chars, completed.result, image.image, exif, out) }) {
                 is SaveResult.Saved -> {
