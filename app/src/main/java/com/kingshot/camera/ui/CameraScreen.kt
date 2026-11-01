@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -91,7 +92,8 @@ fun CameraScreen(
         onDispose { sm?.unregisterListener(listener) }
     }
 
-    Column(Modifier.fillMaxSize().background(Palette.Background)) {
+    // Android 15+ draws edge to edge: keep every control clear of the status bar, navigation bar and display cutout.
+    Column(Modifier.fillMaxSize().background(Palette.Background).safeDrawingPadding()) {
         TopBar(state, vm)
         PreviewArea(state, vm, Modifier.weight(1f))
         BasicText(
