@@ -15,10 +15,16 @@ object ReceiptSummary {
             out += "${c.name}: requested ${c.requested ?: "-"}, device reported ${c.reported ?: "-"} → ${c.status.plain}" + (c.note?.let { " ($it)" } ?: "")
         }
         val e = r.exposure
-        val shutter = e.exposureTimeNs?.let { ns -> if (ns > 0) "1/${Math.round(1e9 / ns)} s".takeIf { ns < 1_000_000_000L } ?: String.format(Locale.US, "%.1f s", ns / 1e9) else null }
+        val shutter = e.exposureTimeNs?.let { shutterText(it) }
         out += "Exposure: ${shutter ?: "not reported"}, ISO ${e.iso ?: "not reported"}"
         r.disclosures.forEach { out += it }
         return out
+    }
+
+    private fun shutterText(ns: Long): String? = when {
+        ns <= 0L -> null
+        ns >= 1_000_000_000L -> String.format(Locale.US, "%.1f s", ns / 1e9)
+        else -> "1/${Math.round(1e9 / ns)} s"
     }
 
     fun text(r: ProcessingReceipt): String = lines(r).joinToString("\n")
