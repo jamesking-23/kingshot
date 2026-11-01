@@ -35,6 +35,7 @@ import com.kingshot.camera.diagnostics.AppInfo
 import com.kingshot.camera.diagnostics.BundleExporter
 import com.kingshot.camera.diagnostics.CapabilityReport
 import com.kingshot.camera.diagnostics.DeviceInfo
+import com.kingshot.camera.diagnostics.ReceiptStore
 import com.kingshot.camera.diagnostics.ReceiptSummary
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
@@ -397,7 +398,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     fun showDetails(photoName: String) {
         val id = photoName.removeSuffix(".jpg")
         val r = LabState.results.receipts.firstOrNull { it.captureId == id }
-        _state.update { it.copy(details = if (r != null) ReceiptSummary.text(r) else "The receipt for $id is not ready yet or was not kept.") }
+        val text = when {
+            r != null -> ReceiptSummary.text(r)
+            else -> ReceiptStore(java.io.File(getApplication<Application>().filesDir, "receipts")).readText(id)
+                ?.let { "Stored receipt (raw JSON):\n$it" }
+                ?: "No receipt found for $id."
+        }
+        _state.update { it.copy(details = text) }
     }
 
     fun closeDetails() = _state.update { it.copy(details = null) }
@@ -426,7 +433,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         val h = CameraHost(app, LabState.log)
         val o = StillCaptureOrchestrator(
             h, MediaSaver(app.contentResolver), LabState.log, LabState.results, this,
-            app.getSystemService(PowerManager::class.java), LabState.ids
+            app.getSystemService(PowerManager::class.java), LabState.ids,
+            receiptStore = ReceiptStore(java.io.File(app.filesDir, "receipts"))
         )
         host = h
         orchestrator = o

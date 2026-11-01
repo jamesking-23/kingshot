@@ -20,6 +20,7 @@ import com.kingshot.camera.diagnostics.CaptureLog
 import com.kingshot.camera.diagnostics.ExposureInfo
 import com.kingshot.camera.diagnostics.OutputRecord
 import com.kingshot.camera.diagnostics.ProcessingReceipt
+import com.kingshot.camera.diagnostics.ReceiptStore
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
 import com.kingshot.camera.profiles.ProfileName
@@ -77,7 +78,8 @@ class StillCaptureOrchestrator(
     private val powerManager: PowerManager?,
     private val ids: CaptureIdGenerator,
     private val monotonicMs: () -> Long = { SystemClock.elapsedRealtime() },
-    private val wallMs: () -> Long = { System.currentTimeMillis() }
+    private val wallMs: () -> Long = { System.currentTimeMillis() },
+    private val receiptStore: ReceiptStore? = null
 ) : CameraHostListener {
 
     @Volatile
@@ -370,6 +372,7 @@ class StillCaptureOrchestrator(
         val thermal = StateNames.thermal(powerManager?.currentThermalStatus)
         val receipt = rec.assembler.build(thermal)
         results.receipts += receipt
+        if (receiptStore?.save(receipt) == false) log.add("Receipt for ${receipt.captureId} could not be stored; it is kept for this session only.")
         while (results.receipts.size > MAX_RECEIPTS) results.receipts.removeAt(0)
         val rt = Runtime.getRuntime()
         log.add("Memory: java heap ${(rt.totalMemory() - rt.freeMemory()) / MB} MB, native heap ${Debug.getNativeHeapAllocatedSize() / MB} MB.")
