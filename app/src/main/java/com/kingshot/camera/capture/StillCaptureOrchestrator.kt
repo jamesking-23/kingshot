@@ -22,6 +22,7 @@ import com.kingshot.camera.diagnostics.OutputRecord
 import com.kingshot.camera.diagnostics.ProcessingReceipt
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
+import com.kingshot.camera.profiles.ProfileName
 import com.kingshot.camera.raw.DngWriter
 import com.kingshot.camera.raw.TimestampMatcher
 import java.util.concurrent.ArrayBlockingQueue
@@ -153,7 +154,8 @@ class StillCaptureOrchestrator(
         val wall = wallMs()
         val id = ids.next(wall)
         val orientation = Orientation.jpegOrientation(caps.sensorOrientation ?: 90, deviceDegrees, caps.lensFacing == "FRONT")
-        val assembler = ReceiptAssembler(id, ids.iso(wall), "lab", caps.cameraId, rawExpected, monotonicMs())
+        val profileName = ProfileName.of(caps, choice.requestNoiseReductionOff, choice.requestEdgeOff).label
+        val assembler = ReceiptAssembler(id, ids.iso(wall), profileName, caps.cameraId, rawExpected, monotonicMs())
         records[id] = Record(assembler, monotonicMs(), orientation)
         log.add("Capture $id requested (RAW expected: $rawExpected).")
         host.capture(
@@ -339,7 +341,7 @@ class StillCaptureOrchestrator(
     private fun saveOrphanJpeg(image: ImageHandle) {
         val wall = wallMs()
         val id = ids.next(wall)
-        val assembler = ReceiptAssembler(id, ids.iso(wall), "lab", activeCapabilities?.cameraId ?: "?", false, monotonicMs())
+        val assembler = ReceiptAssembler(id, ids.iso(wall), "unknown", activeCapabilities?.cameraId ?: "?", false, monotonicMs())
         assembler.onNoMatchingResult()
         assembler.onImageArrived(monotonicMs())
         val rec = Record(assembler, monotonicMs(), 0)

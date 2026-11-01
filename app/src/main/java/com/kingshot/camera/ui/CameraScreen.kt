@@ -285,7 +285,14 @@ private fun LabPanel(state: CameraUiState, vm: CameraViewModel) {
         if (state.photos.isNotEmpty()) {
             BasicText("Recent photos", Modifier.padding(horizontal = 8.dp), style = TextStyle(color = Palette.Muted, fontSize = 12.sp))
             state.photos.forEach { ph ->
-                ActionButton(ph.name, { vm.openPhoto(ph.uri) }, Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp))
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ActionButton(ph.name, { vm.openPhoto(ph.uri) }, Modifier.weight(1f))
+                    ActionButton("Details", { vm.showDetails(ph.name) })
+                }
+            }
+            state.details?.let {
+                BasicText(it, Modifier.fillMaxWidth().padding(8.dp), style = TextStyle(color = Palette.Text, fontSize = 12.sp))
+                ActionButton("Close details", vm::closeDetails, Modifier.padding(horizontal = 8.dp))
             }
         }
         Box(Modifier.fillMaxWidth().background(Palette.Panel).padding(8.dp)) {

@@ -35,6 +35,7 @@ import com.kingshot.camera.diagnostics.AppInfo
 import com.kingshot.camera.diagnostics.BundleExporter
 import com.kingshot.camera.diagnostics.CapabilityReport
 import com.kingshot.camera.diagnostics.DeviceInfo
+import com.kingshot.camera.diagnostics.ReceiptSummary
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
 import com.kingshot.camera.profiles.NaturalProfile
@@ -392,6 +393,14 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         }
         _state.update { it.copy(thumbnail = bmp ?: it.thumbnail, photos = (listOf(PhotoItem(name, uri)) + it.photos).take(MAX_PHOTOS)) }
     }
+
+    fun showDetails(photoName: String) {
+        val id = photoName.removeSuffix(".jpg")
+        val r = LabState.results.receipts.firstOrNull { it.captureId == id }
+        _state.update { it.copy(details = if (r != null) ReceiptSummary.text(r) else "The receipt for $id is not ready yet or was not kept.") }
+    }
+
+    fun closeDetails() = _state.update { it.copy(details = null) }
 
     fun openPhoto(uri: Uri) = _state.update { it.copy(openUri = uri) }
 
