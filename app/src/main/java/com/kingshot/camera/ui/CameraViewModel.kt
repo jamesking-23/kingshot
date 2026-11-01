@@ -37,6 +37,8 @@ import com.kingshot.camera.diagnostics.CapabilityReport
 import com.kingshot.camera.diagnostics.DeviceInfo
 import com.kingshot.camera.diagnostics.ReceiptStore
 import com.kingshot.camera.diagnostics.ReceiptSummary
+import com.kingshot.camera.diagnostics.SelfCheck
+import com.kingshot.camera.diagnostics.SelfCheckPlan
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
 import com.kingshot.camera.profiles.NaturalProfile
@@ -70,6 +72,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     private var firstFrameLogged = false
     private var discoveryToken = 0
     private var evMath: EvMath? = null
+    private var selfCheckToken = 0
     private var countdownStartMs = 0L
     private var countdown: Countdown? = null
     private var pendingDegrees = 0
@@ -242,6 +245,77 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         val m = evMath ?: return
         _state.update { it.copy(evIndex = 0, evLabel = m.label(0)) }
         pushControls()
+    }
+
+    private fun setEvIndex(index: Int) {
+        val m = evMath ?: return
+        val idx = m.clamp(index)
+        _state.update { it.copy(evIndex = idx, evLabel = m.label(idx)) }
+        pushControls()
+    }
+
+    /**
+     * One-tap scripted run: takes photos with different controls, then grades the receipts (see SelfCheck). It can only grade what the
+     * receipts record; flash, focus, level and picture quality still need a person.
+     */
+    fun runSelfCheck() {
+        val s = _state.value
+        if (!s.cameraReady || s.selfCheckRunning) return
+        val baseline = LabState.results.receipts.map { it.captureId }.toSet()
+        val rawBefore = s.wantRaw
+        val steps = mutableListOf<Pair<Long, () -> Unit>>()
+        steps += 0L to { setEvIndex(0) }
+        steps += 0L to { setZoom(1f) }
+        steps += STEP_MS to { shoot(0) }
+        if (s.evAvailable) {
+            steps += 0L to { setEvIndex(SELF_CHECK_EV) }
+            steps += STEP_MS to { shoot(0) }
+            steps += 0L to { setEvIndex(-SELF_CHECK_EV) }
+            steps += STEP_MS to { shoot(0) }
+            steps += 0L to { setEvIndex(0) }
+        }
+        s.zoomChoices.forEach { z ->
+            steps += 0L to { setZoom(z.ratio) }
+            steps += STEP_MS to { shoot(0) }
+        }
+        if (s.zoomChoices.isNotEmpty()) steps += 0L to { setZoom(1f) }
+        if (s.rawAvailable) {
+            if (!rawBefore) steps += 0L to { setWantRaw(true) }
+            steps += RAW_REBUILD_MS to { shoot(0) }
+            steps += STEP_MS to { shoot(0) }
+            if (!rawBefore) steps += STEP_MS to { setWantRaw(false) }
+        }
+        steps += FINISH_WAIT_MS to {
+            val fresh = LabState.results.receipts.filter { it.captureId !in baseline }
+            val plan = SelfCheckPlan(s.evAvailable, s.zoomChoices.size, s.rawAvailable)
+            val text = SelfCheck.text(SelfCheck.evaluate(fresh, plan))
+            LabState.log.add("SELF-CHECK RESULT\n$text")
+            _state.update { it.copy(selfCheckRunning = false, selfCheckText = text, message = "Self-check finished. Tap Export bundle and share it.") }
+        }
+        val token = ++selfCheckToken
+        _state.update { it.copy(selfCheckRunning = true, selfCheckText = null) }
+        LabState.log.add("Self-check started (${steps.size} steps). Keep the phone still, pointed at a normal scene.")
+        runStep(steps, 0, token)
+    }
+
+    private fun runStep(steps: List<Pair<Long, () -> Unit>>, index: Int, token: Int) {
+        if (token != selfCheckToken || index >= steps.size) return
+        val (delay, action) = steps[index]
+        val go = Runnable {
+            if (token == selfCheckToken) {
+                action()
+                runStep(steps, index + 1, token)
+            }
+        }
+        if (delay <= 0L) go.run() else mainHandler.postDelayed(go, delay)
+    }
+
+    private fun abortSelfCheck() {
+        selfCheckToken++
+        if (_state.value.selfCheckRunning) {
+            LabState.log.add("Self-check stopped because the camera closed.")
+            _state.update { it.copy(selfCheckRunning = false) }
+        }
     }
 
     fun setZoom(ratio: Float) {
@@ -512,6 +586,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     private fun closeCamera() {
         cancelCountdown()
+        abortSelfCheck()
         val h = host
         val o = orchestrator
         host = null
@@ -529,6 +604,10 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         private val KEY_TIMER = intPreferencesKey("timer_seconds")
         private val KEY_NR = booleanPreferencesKey("request_nr_off")
         private val KEY_EDGE = booleanPreferencesKey("request_edge_off")
+        private const val STEP_MS = 2500L
+        private const val RAW_REBUILD_MS = 3500L
+        private const val FINISH_WAIT_MS = 5000L
+        private const val SELF_CHECK_EV = 6
         private const val THUMB_PX = 160
         private const val MAX_PHOTOS = 20
         private const val TICK_MS = 100L

@@ -38,6 +38,8 @@ data class CameraUiState(
     val thumbnail: Bitmap? = null,
     val photos: List<PhotoItem> = emptyList(),
     val details: String? = null,
+    val selfCheckRunning: Boolean = false,
+    val selfCheckText: String? = null,
     val profileLabel: String = "Natural",
     val profileDisclosure: String = "",
     val openUri: Uri? = null,

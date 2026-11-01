@@ -274,6 +274,20 @@ private fun LabPanel(state: CameraUiState, vm: CameraViewModel) {
             stringResource(R.string.raw_dng) + if (state.rawAvailable) "" else stringResource(R.string.raw_unavailable_suffix),
             state.wantRaw && state.rawAvailable, state.rawAvailable, vm::setWantRaw
         )
+        BasicText(
+            "One-tap check: takes about 8 to 12 test photos by itself (about 30 seconds). Keep the phone still, pointed at a normal scene, then export the bundle.",
+            Modifier.padding(horizontal = 8.dp),
+            style = TextStyle(color = Palette.Muted, fontSize = 12.sp)
+        )
+        ActionButton(
+            if (state.selfCheckRunning) "Self-check running…" else "Run self-check",
+            vm::runSelfCheck,
+            Modifier.fillMaxWidth().padding(8.dp),
+            enabled = state.cameraReady && !state.selfCheckRunning
+        )
+        state.selfCheckText?.let {
+            BasicText(it, Modifier.fillMaxWidth().padding(8.dp), style = TextStyle(color = Palette.Text, fontSize = 12.sp))
+        }
         val rawStatus = when {
             !state.rawAvailable -> "RAW: not offered by this camera."
             state.wantRaw && state.rawActive -> "RAW: active. Each photo saves a JPEG and a DNG with the same name."
