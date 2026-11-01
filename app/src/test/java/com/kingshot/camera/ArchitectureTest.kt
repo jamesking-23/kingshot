@@ -45,7 +45,9 @@ class ArchitectureTest {
         ).flatMap { filesOf(it) } + listOf(
             "capture/StillRequestPlanner.kt", "capture/CaptureIdGenerator.kt", "capture/ReceiptAssembler.kt",
             "raw/TimestampMatcher.kt", "diagnostics/Json.kt", "diagnostics/ProcessingReceipt.kt",
-            "diagnostics/CapabilityReport.kt", "diagnostics/CaptureLog.kt"
+            "diagnostics/CapabilityReport.kt", "diagnostics/CaptureLog.kt", "diagnostics/ReceiptSummary.kt",
+            "capture/ControlPlanner.kt", "capture/MeteringMath.kt", "capture/LevelMath.kt", "capture/Countdown.kt",
+            "capture/LowLightAdvisor.kt", "capture/OpenGate.kt", "media/PairNaming.kt"
         ).map { File(root, it) }
         val offenders = pure.filter { f -> f.readLines().any { it.startsWith("import android.") } }.map { it.name }
         assertTrue("Android imports in pure core: $offenders", offenders.isEmpty())
