@@ -9,6 +9,7 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 | DV-002 | 2026-10-22 | same | same | **Partial**: 3 captures, one indoor low-light scene, both requests ticked; no unticked comparison, one scene instead of three | see below | n/a |
 | DV-003 | 2026-11-01 | self-check build (CI run 41309527673 or later) | Google Pixel 7, Android 17 | **Partial pass**: 2 RAW+JPEG shots saved as DNG+JPEG pairs; rapid-shot test not run | see DV-S1 | n/a |
 | DV-004 | not run | | | DNGs exist (24.5 MB) but have not been opened in an independent RAW tool | pending | |
+| DV-S2 | 2026-11-01 | self-check build with runWhenIdle fix | Google Pixel 7, Android 17 | **Pass (7 of 7 graded checks)**; one labelling issue found | see below | bundle `kingshot_bundle_20261101_163714` |
 | DV-S1 | 2026-11-01 | self-check build | Google Pixel 7, Android 17 | **Mostly pass; one real bug found** | see below | bundle `kingshot_bundle_20261101_161427` |
 
 ## DV-001 details (facts only)
@@ -40,3 +41,10 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 - Low-light message appeared at about 1/29 s ISO 47-82. That is the message working as designed (exposure time at or slower than 1/30 s), though at such low ISO the "noise" wording is probably too strong; wording to be revisited.
 - **Bug found and fixed:** ticking RAW rebuilt the camera session while shot 7 was still being delivered; its result arrived, its image never did ("unmatched: timeout"). Fix: the session rebuild now waits until no capture is in flight (`runWhenIdle`). Unverified on device until the next self-check.
 - **Grader bug found and fixed:** the self-check wrongly demanded a DNG for the 7 photos taken before RAW was switched on.
+
+## DV-S2 details: second self-check, after the fixes (facts only)
+- All 9 photos saved a JPEG; the 2 RAW-on photos saved a DNG each. The lost-photo bug did not recur (RAW switch waited for the in-flight photo). Median shutter-to-saved 273 ms, worst 463 ms. NR/Edge requests honored 9 of 9 (same caveat). Thermal status MODERATE, SEVERE only on the last photo.
+- **Zoom 2.0 and 5.0 were served by physical camera 4** this time (the first run used camera 2 at those zooms). So which physical camera serves a zoom ratio is the HAL's choice and can vary between runs; the app must report what the result says, never assume it from the label.
+- **Camera 4 is not a separate lens.** The capability report gives it the main camera's focal length (6.81 mm) on a physical size of 4.896x3.6864 mm, exactly a quarter of the main sensor's area (9.792x7.3728 mm). The earlier build would have called it "2x lens". Now: same focal length on a clearly smaller sensor window is labelled "sensor crop" (the strip reads 0.7x lens, 1x lens, 2x sensor crop, 5x digital crop). This rests on characteristics only; how the HAL produces the 2x image (for example crop and remosaic) is not known from them.
+- Exposure at +1 EV (10.2 ms, ISO 240) and -1 EV (11.1 ms, ISO 113) against baseline (33.3 ms, ISO 74-83): the sensor exposure moved in opposite directions to its time/ISO split but the open question about EV brightness is unchanged: JPEG brightness has still not been compared.
+- Low-light wording changed: motion-blur wording for long exposures, noise wording only for high ISO.

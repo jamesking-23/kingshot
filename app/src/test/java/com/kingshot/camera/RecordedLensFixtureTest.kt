@@ -45,4 +45,14 @@ class RecordedLensFixtureTest {
         val widest = physical.map { lensOf(it) }.minByOrNull { LensMath.equivalentMm(it)!! }!!
         assertEquals(minZoom, LensMath.opticalRatio(widest, main)!!, 0.02)
     }
+
+    @Test fun recordedPixel7StripLabelsTheTwoXWindowAsASensorCropNotALens() {
+        val logical = cameras.first { id(it) == "0" }
+        val zoom = logical.getAsJsonObject("controls").getAsJsonArray("zoomRatioRange").let { Pair(it[0].asFloat, it[1].asFloat) }
+        val lenses = cameras.filter { it.getAsJsonObject("identity").get("physicalOf").let { p -> !p.isJsonNull && p.asString == "0" } }.map { lensOf(it) }
+        val ref = LensMath.referenceFor(lenses, zoom.first)!!
+        assertEquals("2", ref)
+        val labels = LensMath.stops(lenses, ref, zoom, listOf(2f, 5f)).map { LensMath.label(it) }
+        assertEquals(listOf("0.7× lens", "1× lens", "2× sensor crop", "5× digital crop"), labels)
+    }
 }
