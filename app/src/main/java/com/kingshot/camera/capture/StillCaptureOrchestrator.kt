@@ -92,6 +92,26 @@ class StillCaptureOrchestrator(
     private val io = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(SAVE_QUEUE))
     private var sweeper: ScheduledExecutorService? = null
 
+    /**
+     * Runs [block] once no capture is in flight, so rebuilding the camera session (for example when RAW is switched on) cannot drop a photo
+     * that is still being delivered. Runs it anyway after [IDLE_WAIT_MS] so the control can never get stuck.
+     */
+    fun runWhenIdle(block: () -> Unit) = waitIdle(monotonicMs() + IDLE_WAIT_MS, block)
+
+    private fun waitIdle(deadline: Long, block: () -> Unit) {
+        val busy = inFlight.get() != 0
+        if (!busy || monotonicMs() >= deadline) {
+            if (busy) log.add("Photos were still in flight after ${IDLE_WAIT_MS} ms; applying the change anyway.")
+            block()
+            return
+        }
+        try {
+            sweeper?.schedule({ waitIdle(deadline, block) }, IDLE_POLL_MS, TimeUnit.MILLISECONDS) ?: block()
+        } catch (_: RejectedExecutionException) {
+            block()
+        }
+    }
+
     fun start() {
         val s = Executors.newSingleThreadScheduledExecutor()
         s.scheduleWithFixedDelay({ sweepSafely() }, 1, 1, TimeUnit.SECONDS)
@@ -403,6 +423,8 @@ class StillCaptureOrchestrator(
 
     companion object {
         const val MAX_IN_FLIGHT = 2
+        private const val IDLE_WAIT_MS = 5000L
+        private const val IDLE_POLL_MS = 100L
         private const val MB = 1024L * 1024L
         private const val MATCHER_CAPACITY = 4
         private const val MATCH_TIMEOUT_MS = 8000L

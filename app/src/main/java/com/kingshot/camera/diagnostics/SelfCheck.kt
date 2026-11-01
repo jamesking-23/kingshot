@@ -5,7 +5,7 @@ enum class CheckResult { PASS, FAIL, SKIPPED }
 data class Check(val name: String, val result: CheckResult, val detail: String)
 
 /** What the scripted run tried, so the grader only judges things that were attempted. */
-data class SelfCheckPlan(val ev: Boolean, val zoomStops: Int, val raw: Boolean)
+data class SelfCheckPlan(val ev: Boolean, val zoomStops: Int, val rawShots: Int)
 
 /** Grades a scripted run from its Processing Receipts. It can only judge what the receipts record; what a photo looks like needs a human. */
 object SelfCheck {
@@ -52,15 +52,17 @@ object SelfCheck {
         val physical = receipts.mapNotNull { it.activePhysicalId }.toSet()
         val lensResult = if (physical.isEmpty()) CheckResult.SKIPPED else CheckResult.PASS
         out += Check("Active lens reported", lensResult, "Active physical cameras seen: ${physical.sorted()}.")
-        out += if (plan.raw) {
-            val missing = receipts.filter { r -> r.outputs.none { it.role == "source_raw" } }
+        out += if (plan.rawShots > 0) {
+            // RAW was switched on for the last [rawShots] photos of the run; earlier photos were JPEG only by design.
+            val rawRun = receipts.sortedBy { order(it) }.takeLast(plan.rawShots)
+            val missing = rawRun.filter { r -> r.outputs.none { it.role == "source_raw" } }
             if (missing.isEmpty()) {
-                Check("DNG saved with every JPEG", CheckResult.PASS, "Every photo has a DNG. Whether the DNG opens correctly still needs a RAW viewer.")
+                Check("DNG saved with every RAW-on photo", CheckResult.PASS, "All ${rawRun.size} RAW-on photos have a DNG. Whether it opens correctly still needs a RAW viewer.")
             } else {
-                Check("DNG saved with every JPEG", CheckResult.FAIL, "No DNG for ${missing.joinToString { it.captureId }}.")
+                Check("DNG saved with every RAW-on photo", CheckResult.FAIL, "No DNG for ${missing.joinToString { it.captureId }}.")
             }
         } else {
-            Check("DNG saved with every JPEG", CheckResult.SKIPPED, "RAW was not offered or not used.")
+            Check("DNG saved with every RAW-on photo", CheckResult.SKIPPED, "RAW was not offered or not used.")
         }
         val times = receipts.mapNotNull { it.shutterToSavedMs }.sorted()
         out += if (times.isEmpty()) {
@@ -71,6 +73,8 @@ object SelfCheck {
         out += Check("Flash, focus, level, picture quality", CheckResult.SKIPPED, "These need a person looking at the phone; not graded here.")
         return out
     }
+
+    private fun order(r: ProcessingReceipt): Int = r.captureId.substringAfterLast('_').toIntOrNull() ?: 0
 
     fun text(checks: List<Check>): String = checks.joinToString("\n") { "[${it.result}] ${it.name}: ${it.detail}" }
 }

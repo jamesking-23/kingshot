@@ -26,11 +26,11 @@ class SelfCheckTest {
     private fun result(checks: List<com.kingshot.camera.diagnostics.Check>, name: String) = checks.first { it.name.startsWith(name) }.result
 
     @Test fun emptyRunFails() {
-        assertEquals(CheckResult.FAIL, SelfCheck.evaluate(emptyList(), SelfCheckPlan(true, 3, false)).single().result)
+        assertEquals(CheckResult.FAIL, SelfCheck.evaluate(emptyList(), SelfCheckPlan(true, 3, 0)).single().result)
     }
 
     @Test fun goodRunPasses() {
-        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 6, 0.7f), r("3", 0, 2f)), SelfCheckPlan(true, 3, false))
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 6, 0.7f), r("3", 0, 2f)), SelfCheckPlan(true, 3, 0))
         assertEquals(CheckResult.PASS, result(c, "JPEG saved"))
         assertEquals(CheckResult.PASS, result(c, "Processing requests"))
         assertEquals(CheckResult.PASS, result(c, "Exposure"))
@@ -39,32 +39,43 @@ class SelfCheckTest {
     }
 
     @Test fun differingControlFails() {
-        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f, status = ControlStatus.DIFFERS)), SelfCheckPlan(false, 0, false))
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f, status = ControlStatus.DIFFERS)), SelfCheckPlan(false, 0, 0))
         assertEquals(CheckResult.FAIL, result(c, "Processing requests"))
     }
 
     @Test fun evThatNeverChangedFails() {
-        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 0, 1f)), SelfCheckPlan(true, 0, false))
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 0, 1f)), SelfCheckPlan(true, 0, 0))
         assertEquals(CheckResult.FAIL, result(c, "Exposure"))
     }
 
     @Test fun zoomThatDidNotChangeFails() {
-        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 0, 1f)), SelfCheckPlan(false, 2, false))
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 0, 1f)), SelfCheckPlan(false, 2, 0))
         assertEquals(CheckResult.FAIL, result(c, "Zoom"))
     }
 
     @Test fun missingDngFailsWhenRawWasUsed() {
-        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f, raw = true), r("2", 0, 1f, raw = false)), SelfCheckPlan(false, 0, true))
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f, raw = true), r("2", 0, 1f, raw = false)), SelfCheckPlan(false, 0, 2))
         assertEquals(CheckResult.FAIL, result(c, "DNG"))
     }
 
     @Test fun missingJpegFails() {
-        assertEquals(CheckResult.FAIL, result(SelfCheck.evaluate(listOf(r("1", 0, 1f, jpeg = false)), SelfCheckPlan(false, 0, false)), "JPEG saved"))
+        assertEquals(CheckResult.FAIL, result(SelfCheck.evaluate(listOf(r("1", 0, 1f, jpeg = false)), SelfCheckPlan(false, 0, 0)), "JPEG saved"))
     }
 
     @Test fun neverGradesWhatNeedsEyes() {
-        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f)), SelfCheckPlan(false, 0, false))
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f)), SelfCheckPlan(false, 0, 0))
         assertEquals(CheckResult.SKIPPED, c.last().result)
         assertFalse(SelfCheck.text(c).contains("unprocessed", ignoreCase = true))
+    }
+
+    @Test fun photosTakenBeforeRawWasOnNeedNoDng() {
+        val c = SelfCheck.evaluate(listOf(r("1", 0, 1f), r("2", 0, 1f, raw = true), r("3", 0, 1f, raw = true)), SelfCheckPlan(false, 0, 2))
+        assertEquals(CheckResult.PASS, result(c, "DNG"))
+    }
+
+    @Test fun rawRunIsFoundByCaptureNumberNotListOrder() {
+        // The last receipt finalised can be an earlier shot; order must follow the capture counter.
+        val c = SelfCheck.evaluate(listOf(r("KS_x_8", 0, 1f, raw = true), r("KS_x_9", 0, 1f, raw = true), r("KS_x_7", 0, 1f)), SelfCheckPlan(false, 0, 2))
+        assertEquals(CheckResult.PASS, result(c, "DNG"))
     }
 }

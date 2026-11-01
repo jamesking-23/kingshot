@@ -282,12 +282,12 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         if (s.rawAvailable) {
             if (!rawBefore) steps += 0L to { setWantRaw(true) }
             steps += RAW_REBUILD_MS to { shoot(0) }
-            steps += STEP_MS to { shoot(0) }
+            repeat(RAW_SHOTS - 1) { steps += STEP_MS to { shoot(0) } }
             if (!rawBefore) steps += STEP_MS to { setWantRaw(false) }
         }
         steps += FINISH_WAIT_MS to {
             val fresh = LabState.results.receipts.filter { it.captureId !in baseline }
-            val plan = SelfCheckPlan(s.evAvailable, s.zoomChoices.size, s.rawAvailable)
+            val plan = SelfCheckPlan(s.evAvailable, s.zoomChoices.size, if (s.rawAvailable) RAW_SHOTS else 0)
             val text = SelfCheck.text(SelfCheck.evaluate(fresh, plan))
             LabState.log.add("SELF-CHECK RESULT\n$text")
             _state.update { it.copy(selfCheckRunning = false, selfCheckText = text, message = "Self-check finished. Tap Export bundle and share it.") }
@@ -389,7 +389,9 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     fun setWantRaw(v: Boolean) {
         _state.update { it.copy(wantRaw = v) }
-        host?.setRawWanted(v)
+        val h = host
+        // Rebuilding the session while a photo is still being delivered loses that photo, so wait until none is in flight.
+        orchestrator?.runWhenIdle { h?.setRawWanted(v) } ?: h?.setRawWanted(v)
     }
 
     fun onMessageShown() = _state.update { it.copy(message = null) }
@@ -608,6 +610,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         private const val RAW_REBUILD_MS = 3500L
         private const val FINISH_WAIT_MS = 5000L
         private const val SELF_CHECK_EV = 6
+        private const val RAW_SHOTS = 2
         private const val THUMB_PX = 160
         private const val MAX_PHOTOS = 20
         private const val TICK_MS = 100L
