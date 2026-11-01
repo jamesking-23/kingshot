@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Fix: controls no longer sit under the status bar (system-bar insets).
+- Phase 2 software side (gate open): receipts with real profile names, receipt details view, persistent receipt store (ADR 0005), PairNaming and preservation tests, RAW status line; docs/phase2/.
 - Phase 1 complete in code (gate open): controls UI, Natural profile, thumbnail/recent photos, DataStore settings, OpenGate lifecycle tests; docs/phase1/.
 - Phase 1 (in progress): Compose UI with ViewModel/StateFlow replaces the XML Lab screen (Lab features kept); compileSdk 37 required by Compose 1.12, targetSdk stays 36.
 - Phase 1 logic with JVM tests: EvMath, LensMath (optical vs digital-crop stops), MeteringMath, LevelMath, Countdown, LowLightAdvisor. Lens ratio estimate checked against the Pixel 7 report (device min zoom 0.6704 vs computed 0.66).
