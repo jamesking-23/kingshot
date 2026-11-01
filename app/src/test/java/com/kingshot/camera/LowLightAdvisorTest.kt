@@ -37,4 +37,10 @@ class LowLightAdvisorTest {
         assertFalse(a.contains("Night", ignoreCase = true))
         assertFalse(a.contains("unprocessed", ignoreCase = true))
     }
+
+    @Test fun wordingMatchesTheMeasuredCause() {
+        assertFalse(LowLightAdvisor.advisory(exposureNs = 34_000_000L, iso = 50)!!.contains("noise"))
+        assertFalse(LowLightAdvisor.advisory(exposureNs = 10_000_000L, iso = 3200)!!.contains("blur"))
+        assertTrue(LowLightAdvisor.advisory(exposureNs = 125_000_000L, iso = 3200)!!.contains("blur and noise"))
+    }
 }

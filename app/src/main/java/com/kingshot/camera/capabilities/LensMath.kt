@@ -5,7 +5,8 @@ import kotlin.math.hypot
 /** One physical lens as reported by the device: focal length and the physical sensor size, both in millimetres. */
 data class LensInfo(val id: String, val focalMm: Float, val sensorWidthMm: Float, val sensorHeightMm: Float)
 
-enum class ZoomKind { OPTICAL, DIGITAL_CROP }
+/** OPTICAL: its own lens. SENSOR_CROP: a smaller window of another lens's sensor (same focal length). DIGITAL_CROP: software crop. */
+enum class ZoomKind { OPTICAL, SENSOR_CROP, DIGITAL_CROP }
 
 /** A selectable zoom position. [lensId] is the physical lens that serves it, or null for a digital crop of another lens. */
 data class ZoomStop(val ratio: Float, val kind: ZoomKind, val lensId: String?)
@@ -14,12 +15,25 @@ data class ZoomStop(val ratio: Float, val kind: ZoomKind, val lensId: String?)
 object LensMath {
     private const val FULL_FRAME_DIAGONAL_MM = 43.27f
     private const val SAME_STOP_TOLERANCE = 0.08f
+    private const val SAME_FOCAL_TOLERANCE = 0.01f
+    private const val SENSOR_AREA_FACTOR = 1.5f
 
-    /** Strip label that never calls a crop optical: "0.7× lens", "1× lens", "2× crop". */
+    /** Strip label that never calls a crop a lens: "0.7× lens", "1× lens", "2× sensor crop", "5× digital crop". */
     fun label(stop: ZoomStop): String {
         val r = Math.round(stop.ratio * 10f) / 10f
         val n = if (r == Math.floor(r.toDouble()).toFloat()) r.toInt().toString() else r.toString()
-        return if (stop.kind == ZoomKind.OPTICAL) "$n× lens" else "$n× crop"
+        return when (stop.kind) {
+            ZoomKind.OPTICAL -> "$n× lens"
+            ZoomKind.SENSOR_CROP -> "$n× sensor crop"
+            ZoomKind.DIGITAL_CROP -> "$n× digital crop"
+        }
+    }
+
+    /** True when another camera has the same focal length on a clearly larger sensor: this one is a window of that sensor, not another lens. */
+    fun isSensorCrop(lens: LensInfo, all: List<LensInfo>): Boolean = all.any { o ->
+        o.id != lens.id &&
+            Math.abs(o.focalMm - lens.focalMm) / lens.focalMm < SAME_FOCAL_TOLERANCE &&
+            o.sensorWidthMm * o.sensorHeightMm > lens.sensorWidthMm * lens.sensorHeightMm * SENSOR_AREA_FACTOR
     }
 
     fun parseSize(text: String?): Pair<Float, Float>? {
@@ -63,7 +77,9 @@ object LensMath {
     fun stops(lenses: List<LensInfo>, reference: String, zoomRange: Pair<Float, Float>?, digitalSteps: List<Float>): List<ZoomStop> {
         if (zoomRange == null) return emptyList()
         val ref = lenses.firstOrNull { it.id == reference } ?: return emptyList()
-        val optical = lenses.mapNotNull { l -> opticalRatio(l, ref)?.let { ZoomStop(it.toFloat(), ZoomKind.OPTICAL, l.id) } }
+        val optical = lenses.mapNotNull { l ->
+            opticalRatio(l, ref)?.let { ZoomStop(it.toFloat(), if (isSensorCrop(l, lenses)) ZoomKind.SENSOR_CROP else ZoomKind.OPTICAL, l.id) }
+        }
         val digital = digitalSteps
             .filter { step -> optical.none { Math.abs(it.ratio - step) / step < SAME_STOP_TOLERANCE } }
             .map { ZoomStop(it, ZoomKind.DIGITAL_CROP, null) }

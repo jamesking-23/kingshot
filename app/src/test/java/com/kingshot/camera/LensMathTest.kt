@@ -56,6 +56,24 @@ class LensMathTest {
     @Test fun labelsSeparateLensFromCrop() {
         assertEquals("0.7× lens", LensMath.label(ZoomStop(0.67f, ZoomKind.OPTICAL, "3")))
         assertEquals("1× lens", LensMath.label(ZoomStop(1f, ZoomKind.OPTICAL, "2")))
-        assertEquals("2× crop", LensMath.label(ZoomStop(2f, ZoomKind.DIGITAL_CROP, null)))
+        assertEquals("2× digital crop", LensMath.label(ZoomStop(2f, ZoomKind.DIGITAL_CROP, null)))
+        assertEquals("2× sensor crop", LensMath.label(ZoomStop(2f, ZoomKind.SENSOR_CROP, "4")))
     }
+
+    // Recorded from the Pixel 7 report: physical camera 4 has the main camera's 6.81 mm focal length on a quarter-area sensor window.
+    private val crop = LensInfo("4", 6.81f, 4.896f, 3.6864f)
+
+    @Test fun sameFocalLengthOnASmallerSensorIsASensorCropNotALens() {
+        val stops = LensMath.stops(listOf(main, ultra, crop), reference = "2", zoomRange = Pair(0.67f, 8f), digitalSteps = listOf(2f, 5f))
+        assertEquals(listOf(ZoomKind.OPTICAL, ZoomKind.OPTICAL, ZoomKind.SENSOR_CROP, ZoomKind.DIGITAL_CROP), stops.map { it.kind })
+        assertEquals("4", stops[2].lensId)
+        assertEquals(listOf("0.7× lens", "1× lens", "2× sensor crop", "5× digital crop"), stops.map { LensMath.label(it) })
+    }
+
+    @Test fun twoDifferentLensesAreNeverMarkedAsCrops() {
+        val stops = LensMath.stops(listOf(main, ultra), reference = "2", zoomRange = zoomRatioRangeForTest(), digitalSteps = emptyList())
+        assertEquals(listOf(ZoomKind.OPTICAL, ZoomKind.OPTICAL), stops.map { it.kind })
+    }
+
+    private fun zoomRatioRangeForTest() = Pair(0.5f, 8f)
 }

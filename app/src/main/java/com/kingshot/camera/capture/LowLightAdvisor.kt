@@ -22,6 +22,11 @@ object LowLightAdvisor {
         val highIso = iso != null && iso >= HIGH_ISO
         if (!longExposure && !highIso) return null
         val parts = listOfNotNull(exposureNs?.let { shutter(it) }, iso?.let { "ISO $it" })
-        return "Low light: the camera used ${parts.joinToString(" at ")}. Hold steady; the result may show blur or noise."
+        val risk = when {
+            longExposure && highIso -> "the photo may show motion blur and noise"
+            longExposure -> "the photo may show motion blur if the phone or subject moves"
+            else -> "the photo may look noisy"
+        }
+        return "Low light: the camera used ${parts.joinToString(" at ")}; $risk."
     }
 }
