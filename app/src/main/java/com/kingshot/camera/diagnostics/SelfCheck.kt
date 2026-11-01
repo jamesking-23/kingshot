@@ -57,7 +57,10 @@ object SelfCheck {
             val rawRun = receipts.sortedBy { order(it) }.takeLast(plan.rawShots)
             val missing = rawRun.filter { r -> r.outputs.none { it.role == "source_raw" } }
             if (missing.isEmpty()) {
-                Check("DNG saved with every RAW-on photo", CheckResult.PASS, "All ${rawRun.size} RAW-on photos have a DNG. Whether it opens correctly still needs a RAW viewer.")
+                Check(
+                    "DNG saved with every RAW-on photo", CheckResult.PASS,
+                    "All ${rawRun.size} RAW-on photos have a DNG. Whether it opens correctly still needs a RAW viewer."
+                )
             } else {
                 Check("DNG saved with every RAW-on photo", CheckResult.FAIL, "No DNG for ${missing.joinToString { it.captureId }}.")
             }
