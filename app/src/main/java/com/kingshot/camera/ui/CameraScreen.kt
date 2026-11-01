@@ -274,6 +274,13 @@ private fun LabPanel(state: CameraUiState, vm: CameraViewModel) {
             stringResource(R.string.raw_dng) + if (state.rawAvailable) "" else stringResource(R.string.raw_unavailable_suffix),
             state.wantRaw && state.rawAvailable, state.rawAvailable, vm::setWantRaw
         )
+        val rawStatus = when {
+            !state.rawAvailable -> "RAW: not offered by this camera."
+            state.wantRaw && state.rawActive -> "RAW: active. Each photo saves a JPEG and a DNG with the same name."
+            state.wantRaw -> "RAW: requested, but this session is JPEG only (see the log for the reason)."
+            else -> "RAW: off."
+        }
+        BasicText(rawStatus, Modifier.padding(horizontal = 8.dp), style = TextStyle(color = Palette.Muted, fontSize = 12.sp))
         Row(
             Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,

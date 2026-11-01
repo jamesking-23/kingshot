@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-01
-- Trace rows: P2, P3, TR1 (receipts), M3 (pairing)
+- Trace rows: P2, P3
 
 ## Context
 Processing Receipts were held in memory only, so they were lost when the process ended, and the bundle could only include receipts from the current run. Phase 2 needs receipts to outlive the process and photos to be paired without touching the user's media.
