@@ -1,5 +1,7 @@
 # Device Validation Requests, Phase 2
 
+> Routine use: run the one-tap self-check in docs/DEVICE_CHECK.md instead of these step-by-step requests. These stay as the detailed spec.
+
 Same install and preconditions as Phase 0/1. Unverified until you report back. DV-003 and DV-004 from Phase 0 (RAW+JPEG, DNG validity) are the main Phase 2 gates; the new items below check what changed since.
 
 ## DV-201: receipts on screen and after restart

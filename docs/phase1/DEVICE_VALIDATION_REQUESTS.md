@@ -1,5 +1,7 @@
 # Device Validation Requests, Phase 1
 
+> Routine use: run the one-tap self-check in docs/DEVICE_CHECK.md instead of these step-by-step requests. These stay as the detailed spec.
+
 Same install steps and preconditions as `docs/phase0/DEVICE_VALIDATION_REQUESTS.md`. The main screen now has the camera controls; the old Lab tools are under the "Lab" button (top right). Nothing below has been run on a device by me; every item is **unverified** until you report back.
 
 ## DV-101: preview, capture, saving

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- One-tap self-check in Lab (scripted photos graded from receipts, SelfCheck tests); docs/DEVICE_CHECK.md replaces routine per-phase test requests.
 - Fix: controls no longer sit under the status bar (system-bar insets).
 - Phase 2 software side (gate open): receipts with real profile names, receipt details view, persistent receipt store (ADR 0005), PairNaming and preservation tests, RAW status line; docs/phase2/.
 - Phase 1 complete in code (gate open): controls UI, Natural profile, thumbnail/recent photos, DataStore settings, OpenGate lifecycle tests; docs/phase1/.
