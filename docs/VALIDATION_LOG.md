@@ -7,8 +7,9 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 |---|---|---|---|---|---|---|
 | DV-001 | 2026-10-22 | app 0.2.0 debug (CI build between `f0fd7d9` and `ed68089`; exact commit not recorded in the app) | Google Pixel 7 (`panther`), Android 17 / SDK 37, build `CP3A.261005.002.A1`, patch 2026-10-05 | **Partial pass** (JPEG only) | see below | `google_panther_android17_report.json` |
 | DV-002 | 2026-10-22 | same | same | **Partial**: 3 captures, one indoor low-light scene, both requests ticked; no unticked comparison, one scene instead of three | see below | n/a |
-| DV-003 | not run | | | RAW + JPEG together not tried (RAW box was unticked) | pending | |
-| DV-004 | not run | | | no DNG exists yet | pending | |
+| DV-003 | 2026-11-01 | self-check build (CI run 41309527673 or later) | Google Pixel 7, Android 17 | **Partial pass**: 2 RAW+JPEG shots saved as DNG+JPEG pairs; rapid-shot test not run | see DV-S1 | n/a |
+| DV-004 | not run | | | DNGs exist (24.5 MB) but have not been opened in an independent RAW tool | pending | |
+| DV-S1 | 2026-11-01 | self-check build | Google Pixel 7, Android 17 | **Mostly pass; one real bug found** | see below | bundle `kingshot_bundle_20261101_161427` |
 
 ## DV-001 details (facts only)
 - Capability report built for **7** camera IDs: back logical `0` (physical `2`, `3`, `4`), front logical `1` (physical `5`, `6`). All FULL hardware level; all list the RAW capability and NR/Edge modes OFF, FAST, HIGH_QUALITY (MINIMAL is not listed on any of them). No field in camera `0` came back missing.
@@ -28,3 +29,14 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 2. The "first rear BACKWARD_COMPATIBLE camera is the main camera" assumption held on this device at 1x. Keep it, mark it device-specific evidence, and revisit when lens selection is built (Phase 1).
 3. Natural may *request* OFF where listed. What the UI may *say* is in `docs/phase0/PHASE0_REPORT.md`.
 4. MINIMAL is not listed on this device, so the "MINIMAL as a fallback" question does not arise here (ADR 0004).
+
+## DV-S1 details: first one-tap self-check (facts only)
+- 9 photos taken by the script. 8 saved a JPEG; shot 7 saved nothing (see bug).
+- **Session with RAW:** the device reported "preview + JPEG + RAW session is supported"; the session was built with RAW; shots 8 and 9 each saved a DNG (24,518 KB) and a JPEG with the same file name. RAW and JPEG both matched their results by sensor timestamp (2 of 2). The DNG was written with camera `0`'s characteristics while the result reported active physical camera `2`. Whether that DNG is correct is **unverified** (no RAW viewer yet).
+- **Lens mapping (matches the labels):** zoom 0.672 was served by physical camera `3`; zoom 1.0, 2.0 and 5.0 by physical camera `2`. So the strip's "lens" (0.7) versus "crop" (2, 5) wording agrees with what the camera reported. Camera `4` never became active. This phone has no separate telephoto lens in this run.
+- **EV:** results reported the requested steps (+6, -6). Sensor exposure times ISO changed as 3.1 vs 1.3 (ms x ISO/100 units: shot 2 at +1 EV was only about 0.2 stop above the 0 EV shots; shot 3 at -1 EV was about 1 stop below). **Open question**, not a finding: scene change, AE settling or tone mapping could explain the asymmetry; JPEG brightness was not compared.
+- NR and Edge: requested OFF, reported OFF, `honored` in 9 of 9. Same caveat as before: this does not prove untouched pixels.
+- Timing: shutter-to-saved 251-472 ms (median 296). Thermal status went MODERATE then SEVERE from the third photo on; the app's own contribution is unknown (the phone may have been warm already).
+- Low-light message appeared at about 1/29 s ISO 47-82. That is the message working as designed (exposure time at or slower than 1/30 s), though at such low ISO the "noise" wording is probably too strong; wording to be revisited.
+- **Bug found and fixed:** ticking RAW rebuilt the camera session while shot 7 was still being delivered; its result arrived, its image never did ("unmatched: timeout"). Fix: the session rebuild now waits until no capture is in flight (`runWhenIdle`). Unverified on device until the next self-check.
+- **Grader bug found and fixed:** the self-check wrongly demanded a DNG for the 7 photos taken before RAW was switched on.

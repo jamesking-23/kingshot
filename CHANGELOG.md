@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix (found by the first self-check on a Pixel 7): switching RAW on while a photo was still in flight lost that photo; the session now rebuilds only when no capture is in flight. Self-check grades DNG only for RAW-on photos.
 - One-tap self-check in Lab (scripted photos graded from receipts, SelfCheck tests); docs/DEVICE_CHECK.md replaces routine per-phase test requests.
 - Fix: controls no longer sit under the status bar (system-bar insets).
 - Phase 2 software side (gate open): receipts with real profile names, receipt details view, persistent receipt store (ADR 0005), PairNaming and preservation tests, RAW status line; docs/phase2/.
