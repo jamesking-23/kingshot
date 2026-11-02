@@ -16,7 +16,8 @@ class ArchitectureTest {
         "raw" to emptySet(),
         "diagnostics" to setOf("capabilities", "media"),
         "camera" to setOf("capabilities", "diagnostics", "raw"),
-        "capture" to setOf("camera", "capabilities", "diagnostics", "media", "raw", "profiles")
+        "capture" to setOf("camera", "capabilities", "diagnostics", "media", "raw", "profiles"),
+        "update" to emptySet()
     )
 
     private val importRegex = Regex("^import com\\.kingshot\\.camera\\.([a-z]+)\\.", RegexOption.MULTILINE)
@@ -47,17 +48,26 @@ class ArchitectureTest {
             "raw/TimestampMatcher.kt", "diagnostics/Json.kt", "diagnostics/ProcessingReceipt.kt",
             "diagnostics/CapabilityReport.kt", "diagnostics/CaptureLog.kt", "diagnostics/ReceiptSummary.kt",
             "capture/ControlPlanner.kt", "capture/MeteringMath.kt", "capture/LevelMath.kt", "capture/Countdown.kt",
-            "capture/LowLightAdvisor.kt", "capture/OpenGate.kt", "media/PairNaming.kt"
+            "capture/LowLightAdvisor.kt", "capture/OpenGate.kt", "media/PairNaming.kt", "update/UpdatePolicy.kt", "update/UpdateUi.kt"
         ).map { File(root, it) }
         val offenders = pure.filter { f -> f.readLines().any { it.startsWith("import android.") } }.map { it.name }
         assertTrue("Android imports in pure core: $offenders", offenders.isEmpty())
     }
 
+    /** Network APIs may appear only in the update package, whose code runs only on a user tap (docs/decisions/0007). */
     @Test
-    fun noInternetOrNetworkApiInSources() {
-        val offenders = root.walkTopDown().filter { it.extension == "kt" }
+    fun networkApisOnlyInTheUpdatePackage() {
+        val updateDir = File(root, "update")
+        val offenders = root.walkTopDown().filter { it.extension == "kt" && !it.startsWith(updateDir) }
             .filter { f -> f.readText().let { it.contains("java.net.") || it.contains("okhttp") || it.contains("HttpURLConnection") } }
             .map { it.name }.toList()
-        assertTrue("Network APIs found: $offenders", offenders.isEmpty())
+        assertTrue("Network APIs outside the update package: $offenders", offenders.isEmpty())
+    }
+
+    @Test
+    fun updateNetworkCodeIsOnlyReachedFromTheViewModel() {
+        val users = root.walkTopDown().filter { it.extension == "kt" && !it.startsWith(File(root, "update")) }
+            .filter { it.readText().contains("GitHubUpdateClient") }.map { it.name }.toList()
+        assertTrue("GitHubUpdateClient used outside the ViewModel: $users", users.all { it == "CameraViewModel.kt" })
     }
 }

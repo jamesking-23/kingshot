@@ -13,15 +13,28 @@ android {
         applicationId = "com.kingshot.camera" // placeholder until the name check (docs/ROADMAP.md)
         minSdk = 34
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
     }
 
+    // Release builds are signed with the project key (release/kingshot.p12, protected by the KS_PASSWORD secret) so that in-app updates
+    // install over earlier releases. Without the secret (local or fork builds) release falls back to the debug key and cannot update a release install.
+    signingConfigs {
+        create("release") {
+            val password = System.getenv("KS_PASSWORD")
+            if (password != null) {
+                storeFile = rootProject.file("release/kingshot.p12")
+                storeType = "pkcs12"
+                storePassword = password
+                keyAlias = "kingshot"
+                keyPassword = password
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Lab build only: signed with the debug key. Replace before any release.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (System.getenv("KS_PASSWORD") != null) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
     compileOptions {

@@ -1,5 +1,6 @@
 package com.kingshot.camera.ui
 
+import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,16 +23,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kingshot.camera.R
+import com.kingshot.camera.update.UpdateUi
 
 /** Full-screen settings. Everything beyond taking a photo lives here: processing requests, RAW, recent photos, diagnostics, about. */
 @Composable
-fun SettingsSheet(state: CameraUiState, vm: CameraViewModel) {
+fun SettingsSheet(state: CameraUiState, vm: CameraViewModel, onAllowInstalls: () -> Unit) {
     val closeDescription = stringResource(R.string.close)
     Column(Modifier.fillMaxSize().background(Palette.Background).safeDrawingPadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -51,6 +54,7 @@ fun SettingsSheet(state: CameraUiState, vm: CameraViewModel) {
             ProcessingSection(state, vm)
             FormatSection(state, vm)
             PhotosSection(state, vm)
+            UpdatesSection(state, vm, onAllowInstalls)
             DiagnosticsSection(state, vm)
             AboutSection(state)
         }
@@ -142,10 +146,45 @@ private fun DiagnosticsSection(state: CameraUiState, vm: CameraViewModel) {
 }
 
 @Composable
+private fun UpdatesSection(state: CameraUiState, vm: CameraViewModel, onAllowInstalls: () -> Unit) {
+    val context = LocalContext.current
+    val u = state.update
+    SectionCard(stringResource(R.string.section_updates)) {
+        BasicText(stringResource(R.string.about_version, state.appVersion), Modifier.padding(top = 8.dp), style = Type.Body)
+        Hint(stringResource(R.string.updates_body))
+        val busy = u is UpdateUi.Checking || u is UpdateUi.Downloading || u is UpdateUi.Installing
+        val status: String? = when (u) {
+            UpdateUi.Idle -> null
+            UpdateUi.Checking -> stringResource(R.string.updates_checking)
+            is UpdateUi.UpToDate -> stringResource(R.string.updates_up_to_date, u.installed)
+            is UpdateUi.Available -> stringResource(R.string.updates_available, u.version, Formatter.formatShortFileSize(context, u.sizeBytes))
+            is UpdateUi.NeedsInstallPermission -> stringResource(R.string.updates_needs_permission)
+            is UpdateUi.Downloading -> stringResource(R.string.updates_downloading, u.percent)
+            UpdateUi.Installing -> stringResource(R.string.updates_installing)
+            is UpdateUi.Failed -> stringResource(R.string.updates_failed, u.message)
+        }
+        val statusColor = if (u is UpdateUi.Failed) Palette.Danger else Palette.Text
+        status?.let { BasicText(it, Modifier.padding(bottom = 8.dp), style = Type.Body.copy(color = statusColor)) }
+        if (u is UpdateUi.Available && u.notes.isNotBlank()) Hint(u.notes)
+        Row(Modifier.padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionButton(stringResource(R.string.updates_check), vm::checkForUpdates, enabled = !busy)
+            when (u) {
+                is UpdateUi.Available -> ActionButton(stringResource(R.string.updates_install), vm::installUpdate, primary = true)
+                is UpdateUi.NeedsInstallPermission ->
+                    ActionButton(stringResource(R.string.updates_open_install_settings), onAllowInstalls, primary = true)
+                else -> Unit
+            }
+        }
+        if (u is UpdateUi.NeedsInstallPermission) {
+            ActionButton(stringResource(R.string.updates_install), vm::installUpdate, Modifier.padding(bottom = 8.dp))
+        }
+    }
+}
+
+@Composable
 private fun AboutSection(state: CameraUiState) {
     SectionCard(stringResource(R.string.section_about)) {
         BasicText(stringResource(R.string.app_name), Modifier.padding(top = 8.dp), style = Type.Body)
-        if (state.appVersion.isNotEmpty()) BasicText(stringResource(R.string.about_version, state.appVersion), style = Type.Caption)
         Hint(stringResource(R.string.about_privacy))
     }
 }

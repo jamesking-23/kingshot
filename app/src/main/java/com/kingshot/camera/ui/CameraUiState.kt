@@ -3,6 +3,7 @@ package com.kingshot.camera.ui
 import android.graphics.Bitmap
 import android.net.Uri
 import com.kingshot.camera.capture.FlashMode
+import com.kingshot.camera.update.UpdateUi
 
 data class PhotoItem(val name: String, val uri: Uri)
 
@@ -42,6 +43,7 @@ data class CameraUiState(
     val shutterTick: Int = 0,
     val permission: PermissionState = PermissionState.UNKNOWN,
     val appVersion: String = "",
+    val update: UpdateUi = UpdateUi.Idle,
     val thumbnail: Bitmap? = null,
     val photos: List<PhotoItem> = emptyList(),
     val details: String? = null,

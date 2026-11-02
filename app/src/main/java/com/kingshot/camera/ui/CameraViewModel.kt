@@ -43,12 +43,20 @@ import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
 import com.kingshot.camera.profiles.NaturalProfile
 import com.kingshot.camera.profiles.ProfileName
+import com.kingshot.camera.update.ApkInstaller
+import com.kingshot.camera.update.GitHubUpdateClient
+import com.kingshot.camera.update.InstallEvents
+import com.kingshot.camera.update.UpdateAssets
+import com.kingshot.camera.update.UpdatePolicy
+import com.kingshot.camera.update.UpdateUi
+import com.kingshot.camera.update.VersionCompare
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -73,6 +81,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     private var discoveryToken = 0
     private var evMath: EvMath? = null
     private var selfCheckToken = 0
+    private var pendingAssets: UpdateAssets? = null
+    private var pendingVersion = ""
     private var countdownStartMs = 0L
     private var countdown: Countdown? = null
     private var pendingDegrees = 0
@@ -143,6 +153,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     override fun onCleared() {
         LabState.log.onChanged = null
+        InstallEvents.onResult = null
         closeCamera()
         super.onCleared()
     }
@@ -419,6 +430,82 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     fun onShareHandled() = _state.update { it.copy(shareUri = null) }
 
+    // ------------------------------------------------------------ updates (the only network use; runs only on a user tap)
+
+    private fun setUpdate(u: UpdateUi) = _state.update { it.copy(update = u) }
+
+    private fun updateClient() = GitHubUpdateClient("KingShot/${_state.value.appVersion} (Android)")
+
+    private fun updateBusy() = _state.value.update.let { it is UpdateUi.Checking || it is UpdateUi.Downloading || it is UpdateUi.Installing }
+
+    fun checkForUpdates() {
+        if (updateBusy()) return
+        setUpdate(UpdateUi.Checking)
+        val installed = _state.value.appVersion
+        Thread {
+            val result = try {
+                val release = updateClient().fetchLatest()
+                val assets = UpdatePolicy.pickAssets(release.assets)
+                when {
+                    !VersionCompare.isNewer(installed, release.tag) -> UpdateUi.UpToDate(installed)
+                    assets == null -> UpdateUi.Failed("Release ${release.tag} has no verified download.")
+                    else -> {
+                        pendingAssets = assets
+                        pendingVersion = release.tag.removePrefix("v")
+                        UpdateUi.Available(pendingVersion, release.notes.take(NOTES_MAX), assets.apk.size)
+                    }
+                }
+            } catch (e: GitHubUpdateClient.UpdateException) {
+                UpdateUi.Failed(e.message ?: "The update check failed.")
+            } catch (e: IOException) {
+                UpdateUi.Failed("Could not reach GitHub. Check your connection and try again.")
+            }
+            setUpdate(result)
+        }.start()
+    }
+
+    fun installUpdate() {
+        val assets = pendingAssets ?: return
+        if (updateBusy()) return
+        val version = pendingVersion
+        val app = getApplication<Application>()
+        if (!app.packageManager.canRequestPackageInstalls()) {
+            setUpdate(UpdateUi.NeedsInstallPermission(version))
+            return
+        }
+        setUpdate(UpdateUi.Downloading(0))
+        Thread {
+            val outcome = try {
+                downloadVerifyAndInstall(app, assets, version)
+                UpdateUi.Installing
+            } catch (e: GitHubUpdateClient.UpdateException) {
+                UpdateUi.Failed(e.message ?: "The update failed.")
+            } catch (e: IOException) {
+                UpdateUi.Failed("The download failed. Check your connection and try again.")
+            }
+            setUpdate(outcome)
+        }.start()
+    }
+
+    private fun downloadVerifyAndInstall(app: Application, assets: UpdateAssets, version: String) {
+        val client = updateClient()
+        val dir = File(app.cacheDir, "updates").apply { mkdirs() }
+        dir.listFiles()?.forEach { it.delete() } // only this app's own cache folder, never user media
+        val apk = File(dir, assets.apk.name)
+        val expected = UpdatePolicy.parseSha256(client.getText(assets.checksum.url, "application/octet-stream"))
+            ?: throw GitHubUpdateClient.UpdateException("The checksum file could not be read.")
+        val actual = client.download(assets.apk.url, apk, assets.apk.size) { setUpdate(UpdateUi.Downloading(it)) }
+        if (actual != expected) {
+            apk.delete()
+            throw GitHubUpdateClient.UpdateException("The download does not match its checksum, so it was discarded.")
+        }
+        val installer = ApkInstaller(app)
+        installer.problemWith(apk)?.let { throw GitHubUpdateClient.UpdateException(it) }
+        InstallEvents.onResult = { ok, message -> setUpdate(if (ok) UpdateUi.UpToDate(version) else UpdateUi.Failed(message)) }
+        installer.install(apk)
+        LabState.log.add("Update $version downloaded, verified and handed to the Android installer.")
+    }
+
     fun exportBundle() {
         val s = _state.value
         val cams = LabState.cameras
@@ -627,6 +714,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         private val KEY_TIMER = intPreferencesKey("timer_seconds")
         private val KEY_NR = booleanPreferencesKey("request_nr_off")
         private val KEY_EDGE = booleanPreferencesKey("request_edge_off")
+        private const val NOTES_MAX = 600
         private const val STEP_MS = 2500L
         private const val RAW_REBUILD_MS = 3500L
         private const val FINISH_WAIT_MS = 5000L

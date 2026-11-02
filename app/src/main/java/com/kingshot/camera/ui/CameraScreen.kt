@@ -76,7 +76,8 @@ fun CameraScreen(
     onShare: (android.net.Uri) -> Unit,
     onOpen: (android.net.Uri) -> Unit,
     onRequestPermission: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onAllowInstalls: () -> Unit
 ) {
     val state = vm.state.collectAsStateWithLifecycle().value
     val context = LocalContext.current
@@ -125,7 +126,7 @@ fun CameraScreen(
                 BottomBar(state, vm, deviceDegrees)
             }
         }
-        if (state.showSettings) SettingsSheet(state, vm)
+        if (state.showSettings) SettingsSheet(state, vm, onAllowInstalls)
     }
 }
 

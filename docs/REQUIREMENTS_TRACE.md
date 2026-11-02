@@ -11,7 +11,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | P3 | 2 | Preservation: never silently overwrite a source capture; original-plus-rendered | 2 | media | pairing and no-overwrite tests + instrumented MediaStore | not started | - |
 | P4 | 2 | Capability-aware UI: controls only when the active camera supports them | 1 | capabilities, UI | registry fixture tests; Compose UI tests | implemented | Flash, EV, zoom strip and per-NR/Edge/RAW toggles appear only when the camera reports them (ControlPlanner, EvMath, LensMath tests); unverified on device |
 | P5 | 2 | Fast default path: open, one tap, saved photo | 1 | UI, capture | cold-start-to-first-frame benchmark | not started | - |
-| P6 | 2 | Privacy: local by default; AI/cloud only by explicit opt-in | 0 | all | CI merged-manifest INTERNET gate | implemented | INTERNET gate + no-network-API architecture test; CAMERA only; https://github.com/jamesking-23/kingshot/actions/runs/39354771975 |
+| P6 | 2 | Privacy: local by default; AI/cloud only by explicit opt-in | 0 | all | CI permission allow-list gate; architecture tests (network only in update package) | implemented | Permissions: CAMERA, INTERNET and REQUEST_INSTALL_PACKAGES, the latter two only for the user-started update check (ADR 0007); update logic unit-tested; download and install unverified on device |
 | P7 | 2 | Incremental engineering: prove pipeline before AI and video | all | - | phase gates | not started | - |
 | FM01 | 3 (Capture / MVP) | Photo, JPEG, DNG when supported, lens discovery | 1 (DNG: 2) | capture, raw, capabilities | per phase | not started | prototype partial: PROTOTYPE_AUDIT #1-4 |
 | FM02 | 3 (Capture / Later) | Burst | unscheduled | capture | - | not started | - |

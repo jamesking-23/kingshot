@@ -19,7 +19,7 @@ Requires JDK 17 and the Android SDK (platform 34). Android Studio works as is.
 ./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug
 ```
 APK: `app/build/outputs/apk/debug/app-debug.apk`. CI (`.github/workflows/build-apk.yml`) runs the same
-tasks plus a check that the merged manifest has no INTERNET permission, and uploads the APK as the
+tasks plus a check that the merged manifest declares only the allowed permissions (CAMERA, and INTERNET and REQUEST_INSTALL_PACKAGES for the update check), and uploads the APK as the
 `KingShot-debug-apk` artifact.
 
 ## Docs

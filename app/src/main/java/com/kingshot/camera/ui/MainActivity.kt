@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { CameraScreen(vm, ::deviceDegrees, ::share, ::openPhoto, ::requestCamera, ::openAppSettings) }
+        setContent { CameraScreen(vm, ::deviceDegrees, ::share, ::openPhoto, ::requestCamera, ::openAppSettings, ::allowInstalls) }
     }
 
     override fun onResume() {
@@ -41,6 +41,10 @@ class MainActivity : ComponentActivity() {
 
     private fun openAppSettings() {
         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+    }
+
+    private fun allowInstalls() {
+        startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.fromParts("package", packageName, null)))
     }
 
     private fun deviceDegrees(): Int = when (display?.rotation) {

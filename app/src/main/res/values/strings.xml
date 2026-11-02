@@ -29,7 +29,7 @@
 
     <!-- Permission -->
     <string name="permission_title">Camera access is needed</string>
-    <string name="permission_body">KingShot needs the camera to show a preview and take photos. Photos are saved on your phone. KingShot has no internet access.</string>
+    <string name="permission_body">KingShot needs the camera to show a preview and take photos. Photos are saved on your phone.</string>
     <string name="permission_allow">Allow camera</string>
     <string name="permission_open_settings">Open settings</string>
 
@@ -39,6 +39,18 @@
     <string name="section_photos">Recent photos</string>
     <string name="section_diagnostics">Diagnostics</string>
     <string name="section_about">About</string>
+    <string name="section_updates">Updates</string>
+    <string name="updates_body">KingShot looks for a new version on GitHub only when you tap the button below. The update is checked against its checksum and its signing key before Android is asked to install it.</string>
+    <string name="updates_check">Check for updates</string>
+    <string name="updates_checking">Checking…</string>
+    <string name="updates_up_to_date">You have the latest version (%1$s).</string>
+    <string name="updates_available">Version %1$s is available (%2$s).</string>
+    <string name="updates_install">Download and install</string>
+    <string name="updates_needs_permission">Android needs your permission first. Allow KingShot to install apps, then come back and tap Download and install.</string>
+    <string name="updates_open_install_settings">Allow installs from KingShot</string>
+    <string name="updates_downloading">Downloading… %1$d%%</string>
+    <string name="updates_installing">Waiting for you to confirm the installation on the Android screen.</string>
+    <string name="updates_failed">Update problem: %1$s</string>
     <string name="processing_disclosure">KingShot asks the camera to turn noise reduction and edge enhancement off where the camera allows it. The phone decides what it does, and the JPEG may still be processed by the phone.</string>
     <string name="request_nr_off">Ask for noise reduction off</string>
     <string name="request_edge_off">Ask for edge enhancement off</string>
@@ -60,6 +72,6 @@
     <string name="include_samples">Include the latest JPEG and DNG in the bundle</string>
     <string name="show_log">Show log</string>
     <string name="hide_log">Hide log</string>
-    <string name="about_privacy">KingShot does not request internet access and has no analytics. Photos and receipts stay on your phone.</string>
+    <string name="about_privacy">KingShot has no analytics and sends nothing about you. Its only internet use is the update check you start yourself. Photos and receipts stay on your phone.</string>
     <string name="about_version">Version %1$s</string>
 </resources>

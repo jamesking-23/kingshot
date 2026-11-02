@@ -27,7 +27,7 @@ The same test checks that the pure core (capabilities, planner, matcher, receipt
 - **Threading.** Camera callbacks on one dedicated thread; encode/save on an IO dispatcher; coroutines + Flow; never GlobalScope.
 - **Camera2 first.** Extensions are evaluated only for the Computational profile (ADR in Phase 3).
 - **Storage.** DataStore for settings/profiles. Receipts and pairing: Room vs sidecar JSON decided in an ADR (Phase 2); must survive files moved/deleted outside the app.
-- **Privacy.** CAMERA permission only; no INTERNET; CI gate on the merged manifest.
+- **Privacy.** CAMERA, plus INTERNET and REQUEST_INSTALL_PACKAGES used only by the update check the user starts (ADR 0007); network code only in the `update` package; CI gate on the merged manifest.
 
 ## Initial ADRs to write (docs/decisions/)
 0001 toolchain and min SDK (accepted) · 0002 quality gates and dependencies (accepted) · UI toolkit and when Compose replaces XML · 0003 capability model schema/versioning · 0004 NR MINIMAL fallback (Phase 0, from evidence) · 0005 receipt/pairing store (Phase 2) · 0006 RAW library (Phase 3, owner decides).

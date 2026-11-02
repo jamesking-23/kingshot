@@ -8,7 +8,7 @@ Android camera app, Pixel first. Source of truth: docs/BLUEPRINT.md. Progress le
 - Request noise reduction OFF and edge OFF only if listed as available modes.
 - Never overwrite a source capture. Originals and rendered files are paired.
 - Show a control only when the active camera supports it.
-- No INTERNET permission and no analytics. AI or cloud features need my explicit approval.
+- No analytics. The INTERNET and REQUEST_INSTALL_PACKAGES permissions exist only for the update check the user starts in Settings (this repo's GitHub releases; ADR 0007). No other network use. AI or cloud features need my explicit approval.
 - Do not claim device behavior you have not seen. Mark it unverified and write a Device Validation Request.
 - Close every Image exactly once, keep queues bounded, match images to results by timestamp.
 

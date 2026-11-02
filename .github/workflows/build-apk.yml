@@ -62,15 +62,26 @@ jobs:
             echo "::error::${l:0:380}"
           done
 
-      - name: Privacy gate - merged manifest must not request INTERNET
+      - name: Privacy gate - merged manifest may declare only the allowed permissions
         run: |
           M=$(find app/build -path '*merged_manifest*' -name AndroidManifest.xml | head -n1)
           echo "Checking $M"
           test -n "$M"
-          if grep -q 'android.permission.INTERNET' "$M"; then
-            echo "FAIL: INTERNET permission found in merged manifest"; exit 1
-          fi
-          echo "Permissions declared:"; grep -o 'uses-permission[^/]*' "$M"
+          python3 - "$M" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          ns = '{http://schemas.android.com/apk/res/android}name'
+          allowed = {
+              'android.permission.CAMERA',
+              'android.permission.INTERNET',                 # update check started by the user (ADR 0007)
+              'android.permission.REQUEST_INSTALL_PACKAGES', # installing the downloaded update
+          }
+          found = [e.get(ns) for e in ET.parse(sys.argv[1]).getroot().iter('uses-permission')]
+          print('Permissions declared:', found)
+          bad = [p for p in found if p not in allowed and not p.endswith('.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION')]
+          if bad:
+              print('FAIL: unexpected permissions:', bad)
+              sys.exit(1)
+          PY
 
       - uses: actions/upload-artifact@v4
         if: always()
