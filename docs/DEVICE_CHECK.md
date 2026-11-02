@@ -3,11 +3,12 @@
 About 3 minutes, once per milestone, not per phase.
 
 1. Install the latest `KingShot-debug-apk` from the Actions page. Open the app and allow the camera.
-2. Tap **Lab**, then **Run self-check**. Keep the phone still, pointed at a normal scene, for about 30 seconds. It takes the test photos by itself and grades them from the receipts.
+2. Tap the **sliders icon** (top right) to open Settings, scroll to **Diagnostics**, then tap **Run self-check**. Keep the phone still, pointed at a normal scene, for about 30 seconds. It takes the test photos by itself and grades them from the receipts.
 3. Tap **Export bundle** and share the zip to me. Nothing else is needed.
 
 Optional, 1 minute, only if you have time (these cannot be graded by the app because they need eyes):
-- Do the top buttons respond, and does the picture look upright?
+- Do the top icons (flash, timer, grid, level, settings) respond, and does the picture look upright?
+- Do the zoom buttons over the picture change the view, and does the caption under them say the right thing (lens, sensor crop or digital crop)?
 - Does tapping the picture show a ring and refocus?
 - In a dim room, does the flash fire when set to On?
 

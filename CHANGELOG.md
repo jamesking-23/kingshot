@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- v0.4.0 production UI/UX (docs/UX.md): icon top bar, zoom buttons with honest lens / sensor crop / digital crop captions, shutter feedback, full-screen settings, camera-permission screen, app icon and name "KingShot". Sensor-crop detection and low-light wording fixes from the self-check bundles.
+- Phase 3 decision (ADR 0006): no third-party RAW library; DNG stays the preserved source.
 - Fix (found by the first self-check on a Pixel 7): switching RAW on while a photo was still in flight lost that photo; the session now rebuilds only when no capture is in flight. Self-check grades DNG only for RAW-on photos.
 - One-tap self-check in Lab (scripted photos graded from receipts, SelfCheck tests); docs/DEVICE_CHECK.md replaces routine per-phase test requests.
 - Fix: controls no longer sit under the status bar (system-bar insets).

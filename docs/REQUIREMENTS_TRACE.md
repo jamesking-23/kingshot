@@ -53,7 +53,7 @@ Single progress ledger. Status values: not started, implemented, unit-verified, 
 | UI1 | 6 Main camera | Top bar: identity, flash, timer, settings | 1 | UI | Compose UI tests | not started | - |
 | UI2 | 6 Main camera | Viewfinder: live preview, focus indicator, grid/level toggles | 1 | UI | Compose UI tests | not started | - |
 | UI3 | 6 Main camera | Lens/zoom strip labelling optical transitions and digital crop | 1 | UI | Compose UI tests | not started | - |
-| UI4 | 6 Main camera | Processing chip: Natural / Computational / Custom | 1 (chip) - profiles arrive per P1 | UI | Compose UI tests | not started | - |
+| UI4 | 6 Main camera | Processing chip: Natural / Computational / Custom | 1 (chip) - profiles arrive per P1 | UI | Compose UI tests | implemented | Profile line in Settings (Natural or Custom); no on-screen chip yet; unverified on device |
 | UI5 | 6 Main camera | Shutter and gallery thumbnail | 1 | UI | Compose UI tests | not started | - |
 | UI6 | 6 Main camera | Slide-up Pro panel: exposure, focus, WB, processing | 1 (exposure) / 4 (manual)* | UI | Compose UI tests | not started | - |
 | UI7 | 6 Main camera | Clear status whenever a control is unsupported | 1 | UI | Compose UI tests | not started | - |
