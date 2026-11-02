@@ -152,7 +152,12 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     fun onResume(permissionGranted: Boolean) {
         gate.onResume(permissionGranted)
         _state.update {
-            it.copy(permission = if (permissionGranted) PermissionState.GRANTED else if (it.permission == PermissionState.DENIED) it.permission else PermissionState.UNKNOWN)
+            val next = when {
+                permissionGranted -> PermissionState.GRANTED
+                it.permission == PermissionState.DENIED -> PermissionState.DENIED
+                else -> PermissionState.UNKNOWN
+            }
+            it.copy(permission = next)
         }
         resumedAtMs = SystemClock.elapsedRealtime()
         firstFrameLogged = false

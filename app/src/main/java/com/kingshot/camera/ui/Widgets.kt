@@ -68,12 +68,17 @@ fun SwitchRow(label: String, checked: Boolean, enabled: Boolean, onCheckedChange
             checked -> Palette.Accent
             else -> Palette.SurfaceHigh
         }
+        val knob = when {
+            !enabled -> Palette.Disabled
+            checked -> Palette.OnAccent
+            else -> Palette.Muted
+        }
         Box(Modifier.size(width = 52.dp, height = 30.dp).background(track, CircleShape).padding(3.dp)) {
             Box(
                 Modifier
                     .align(if (checked) Alignment.CenterEnd else Alignment.CenterStart)
                     .size(24.dp)
-                    .background(if (checked && enabled) Palette.OnAccent else if (enabled) Palette.Muted else Palette.Disabled, CircleShape)
+                    .background(knob, CircleShape)
             )
         }
     }
