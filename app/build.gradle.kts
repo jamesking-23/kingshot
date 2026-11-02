@@ -13,8 +13,8 @@ android {
         applicationId = "com.kingshot.camera" // placeholder until the name check (docs/ROADMAP.md)
         minSdk = 34
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     buildTypes {
@@ -34,6 +34,7 @@ dependencies {
     // Phase 1 UI: Compose foundation + ui only (no Material library), ViewModel/StateFlow, Preferences DataStore for settings.
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
+    implementation(libs.compose.animation.core)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)

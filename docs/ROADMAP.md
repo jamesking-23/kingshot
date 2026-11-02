@@ -24,8 +24,8 @@ P1-01 Compose shell + ViewModel/StateFlow [done, CI green] · P1-02 Natural prof
 ## Phase 2: RAW and processing control
 P2-01 DNG queue hardening and orientation/metadata [code reviewed, device pending] · P2-02 validated JPEG+RAW path and fallback UI [D] · P2-03 profile definitions + DataStore persistence (Natural, Custom) [done] · P2-04 ADR 0005 and receipt/pairing store [done] · P2-05 receipts shown in capture details [done] · P2-06 DNG opens in an independent viewer [D] · P2-07 no-overwrite and pair reconciliation tests [done, JVM only]. Gate + phase report.
 
-## Phase 3 (after your RAW-library decision)
-ADR 0006 candidate comparison (you choose; no copyleft without approval) → render pipeline writing new paired files → compare view → HDR/denoise experiments behind flags → Computational profile (extension ADR) → benchmarks → repeated-trial protocol on agreed thresholds.
+## Phase 3 (decided: no third-party RAW library, ADR 0006)
+No licensed renderer is added. DNG stays the preserved source. Optional later: a platform-rendered copy saved as a paired file. HDR fusion and denoising remain unscheduled.
 
 ## Phase 4
 Manual controls, histogram, focus peaking, bracketing, portrait depth, video modes, provenance manifest and processing recipe; each capability-gated and device-validated.

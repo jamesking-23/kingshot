@@ -6,7 +6,10 @@ import com.kingshot.camera.capture.FlashMode
 
 data class PhotoItem(val name: String, val uri: Uri)
 
-data class ZoomChoice(val label: String, val ratio: Float)
+enum class PermissionState { UNKNOWN, GRANTED, DENIED }
+
+/** [label] is the full honest name ("2× sensor crop"); [short] is what fits on the button ("2×"). */
+data class ZoomChoice(val label: String, val ratio: Float, val short: String)
 
 /** Everything the screen shows. Immutable; the ViewModel replaces it as a whole (unidirectional data flow). */
 data class CameraUiState(
@@ -34,7 +37,11 @@ data class CameraUiState(
     val levelOn: Boolean = false,
     val rollDegrees: Double? = null,
     val focusPoint: Pair<Float, Float>? = null,
-    val showLab: Boolean = false,
+    val showSettings: Boolean = false,
+    val showEv: Boolean = false,
+    val shutterTick: Int = 0,
+    val permission: PermissionState = PermissionState.UNKNOWN,
+    val appVersion: String = "",
     val thumbnail: Bitmap? = null,
     val photos: List<PhotoItem> = emptyList(),
     val details: String? = null,

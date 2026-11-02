@@ -1,15 +1,65 @@
 <resources>
-    <string name="app_name">KingShot Lab</string>
-    <string name="preview_description">Camera preview</string>
-    <string name="disclosure">Requests only: the device decides what it honors, and the JPEG may still be processed by the device. Phase 0 prototype, not verified on a device.</string>
-    <string name="request_nr_off">Request noise reduction OFF (only if listed)</string>
-    <string name="request_edge_off">Request edge enhancement OFF (only if listed)</string>
-    <string name="raw_dng">Also capture RAW + DNG (only if supported)</string>
-    <string name="include_samples">Include latest JPEG/DNG in bundle</string>
+    <string name="app_name">KingShot</string>
+
+    <!-- Camera screen -->
+    <string name="preview_description">Camera preview. Tap to focus.</string>
+    <string name="take_photo">Take photo</string>
+    <string name="cancel_timer">Cancel timer</string>
+    <string name="open_latest_photo">Open latest photo</string>
+    <string name="settings">Settings</string>
+    <string name="close">Close</string>
+    <string name="flash">Flash</string>
+    <string name="flash_off">Off</string>
+    <string name="flash_auto">Auto</string>
+    <string name="flash_on">On</string>
+    <string name="timer">Timer</string>
+    <string name="timer_off">Off</string>
+    <string name="timer_seconds">%1$d s</string>
+    <string name="grid">Grid</string>
+    <string name="level">Level</string>
+    <string name="exposure">Exposure</string>
+    <string name="exposure_decrease">Darker</string>
+    <string name="exposure_increase">Brighter</string>
+    <string name="exposure_reset">Reset</string>
+    <string name="zoom_selected">%1$s, selected</string>
+    <string name="state_on">On</string>
+    <string name="state_off">Off</string>
+    <string name="exposure_value">Exposure compensation %1$s</string>
+    <string name="profile_line">Profile: %1$s</string>
+
+    <!-- Permission -->
+    <string name="permission_title">Camera access is needed</string>
+    <string name="permission_body">KingShot needs the camera to show a preview and take photos. Photos are saved on your phone. KingShot has no internet access.</string>
+    <string name="permission_allow">Allow camera</string>
+    <string name="permission_open_settings">Open settings</string>
+
+    <!-- Settings -->
+    <string name="section_processing">Photo processing</string>
+    <string name="section_format">Format</string>
+    <string name="section_photos">Recent photos</string>
+    <string name="section_diagnostics">Diagnostics</string>
+    <string name="section_about">About</string>
+    <string name="processing_disclosure">KingShot asks the camera to turn noise reduction and edge enhancement off where the camera allows it. The phone decides what it does, and the JPEG may still be processed by the phone.</string>
+    <string name="request_nr_off">Ask for noise reduction off</string>
+    <string name="request_edge_off">Ask for edge enhancement off</string>
+    <string name="not_listed">This camera does not offer this setting.</string>
+    <string name="raw_dng">Also save a RAW (DNG) file</string>
+    <string name="raw_status_unavailable">RAW is not offered by this camera.</string>
+    <string name="raw_status_active">RAW is on. Each photo saves a JPEG and a DNG with the same name.</string>
+    <string name="raw_status_pending">RAW was requested, but this session can only save JPEG. See the log for the reason.</string>
+    <string name="raw_status_off">RAW is off.</string>
+    <string name="open">Open</string>
+    <string name="details">Details</string>
+    <string name="close_details">Close details</string>
+    <string name="no_photos">Photos you take appear here.</string>
+    <string name="selfcheck_title">One-tap self-check</string>
+    <string name="selfcheck_body">Takes about 10 test photos by itself (about 30 seconds) and grades what the camera reported. Keep the phone still and pointed at a normal scene, then export the bundle.</string>
+    <string name="selfcheck_run">Run self-check</string>
+    <string name="selfcheck_running">Self-check running…</string>
     <string name="export_bundle">Export bundle</string>
-    <string name="capture">Capture</string>
-    <string name="not_listed_suffix"> (not listed by this camera)</string>
-    <string name="raw_unavailable_suffix"> (RAW not available on this camera)</string>
-    <string name="bundle_saved">Bundle saved to Download/KingShot</string>
-    <string name="bundle_failed">Bundle export failed; see the log</string>
+    <string name="include_samples">Include the latest JPEG and DNG in the bundle</string>
+    <string name="show_log">Show log</string>
+    <string name="hide_log">Hide log</string>
+    <string name="about_privacy">KingShot does not request internet access and has no analytics. Photos and receipts stay on your phone.</string>
+    <string name="about_version">Version %1$s</string>
 </resources>

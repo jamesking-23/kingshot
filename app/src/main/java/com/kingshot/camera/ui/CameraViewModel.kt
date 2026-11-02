@@ -96,6 +96,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         LabState.log.onChanged = { publishLog() }
         publishLog()
         loadSettings()
+        val app = getApplication<Application>()
+        val version = try {
+            app.packageManager.getPackageInfo(app.packageName, 0).versionName ?: ""
+        } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+            ""
+        }
+        _state.update { it.copy(appVersion = version) }
     }
 
     private fun loadSettings() {
@@ -144,6 +151,9 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     fun onResume(permissionGranted: Boolean) {
         gate.onResume(permissionGranted)
+        _state.update {
+            it.copy(permission = if (permissionGranted) PermissionState.GRANTED else if (it.permission == PermissionState.DENIED) it.permission else PermissionState.UNKNOWN)
+        }
         resumedAtMs = SystemClock.elapsedRealtime()
         firstFrameLogged = false
         maybeOpen()
@@ -156,6 +166,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     fun onPermissionResult(granted: Boolean) {
         gate.onPermission(granted)
+        _state.update { it.copy(permission = if (granted) PermissionState.GRANTED else PermissionState.DENIED) }
         if (granted) maybeOpen() else LabState.log.add("Camera permission denied. The camera cannot run without it.")
     }
 
@@ -200,6 +211,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     private fun shoot(deviceDegrees: Int) {
         val s = _state.value
+        _state.update { it.copy(shutterTick = it.shutterTick + 1) }
         orchestrator?.takePhoto(ProcessingChoice(s.nrAvailable && s.requestNr, s.edgeAvailable && s.requestEdge), deviceDegrees)
     }
 
@@ -333,7 +345,11 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         saveSettings()
     }
 
-    fun toggleLab() = _state.update { it.copy(showLab = !it.showLab) }
+    fun openSettings() = _state.update { it.copy(showSettings = true, showEv = false) }
+
+    fun closeSettings() = _state.update { it.copy(showSettings = false, details = null) }
+
+    fun toggleEv() = _state.update { it.copy(showEv = !it.showEv) }
 
     /** Accelerometer sample in the device frame (portrait-locked screen). */
     fun onGravity(ax: Float, ay: Float, az: Float) {
@@ -574,7 +590,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
             it.copy(
                 evAvailable = ev != null, evIndex = 0, evLabel = ev?.label(0) ?: "",
                 flashAvailable = flashOk, flash = FlashMode.OFF,
-                zoomChoices = stops.map { st -> ZoomChoice(LensMath.label(st), st.ratio) },
+                zoomChoices = stops.map { st -> LensMath.label(st).let { l -> ZoomChoice(l, st.ratio, l.substringBefore(' ')) } },
                 zoomRatio = 1f
             )
         }

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Surface
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -21,19 +22,25 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { CameraScreen(vm, ::deviceDegrees, ::share, ::openPhoto) }
+        setContent { CameraScreen(vm, ::deviceDegrees, ::share, ::openPhoto, ::requestCamera, ::openAppSettings) }
     }
 
     override fun onResume() {
         super.onResume()
         val granted = checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         vm.onResume(granted)
-        if (!granted) permission.launch(Manifest.permission.CAMERA)
+        if (!granted && vm.state.value.permission == PermissionState.UNKNOWN) requestCamera()
     }
 
     override fun onPause() {
         vm.onPause()
         super.onPause()
+    }
+
+    private fun requestCamera() = permission.launch(Manifest.permission.CAMERA)
+
+    private fun openAppSettings() {
+        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
     }
 
     private fun deviceDegrees(): Int = when (display?.rotation) {
