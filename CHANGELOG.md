@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- v0.6.0: brightness slider on the right edge of the viewfinder replaces the EV button; Looks panel modelled on Pixel 11 Camera Looks (Original/Natural/Shadows/Vanilla, six presets, Contrast/Highlights/Shadows/Vibrance/Tint/Warmth, Sharpness, Grain, "Always use selected look"). A look is rendered to a paired copy; the original is untouched. ADR 0008 lists what matches Pixel and what cannot.
+- Release workflow can attach to an existing release page and be run by hand with a tag (v0.5.0 was published this way).
 - v0.5.0: in-app "Check for updates" (Settings, Updates) with checksum and signing-key checks; signed GitHub Releases via tag-triggered workflow (docs/RELEASING.md, ADR 0007). New permissions INTERNET and REQUEST_INSTALL_PACKAGES, used only by that check.
 - v0.4.0 production UI/UX (docs/UX.md): icon top bar, zoom buttons with honest lens / sensor crop / digital crop captions, shutter feedback, full-screen settings, camera-permission screen, app icon and name "KingShot". Sensor-crop detection and low-light wording fixes from the self-check bundles.
 - Phase 3 decision (ADR 0006): no third-party RAW library; DNG stays the preserved source.

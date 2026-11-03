@@ -4,6 +4,9 @@ import java.util.Locale
 
 /** Exposure compensation derived only from the camera's reported range and step. Null from [from] means "show no control". */
 class EvMath private constructor(private val min: Int, private val max: Int, private val step: Double) {
+    val minIndex: Int get() = min
+    val maxIndex: Int get() = max
+
     fun clamp(index: Int): Int = index.coerceIn(min, max)
 
     fun indices(): List<Int> = (min..max).toList()

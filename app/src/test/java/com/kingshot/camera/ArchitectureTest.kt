@@ -17,7 +17,8 @@ class ArchitectureTest {
         "diagnostics" to setOf("capabilities", "media"),
         "camera" to setOf("capabilities", "diagnostics", "raw"),
         "capture" to setOf("camera", "capabilities", "diagnostics", "media", "raw", "profiles"),
-        "update" to emptySet()
+        "update" to emptySet(),
+        "looks" to setOf("media")
     )
 
     private val importRegex = Regex("^import com\\.kingshot\\.camera\\.([a-z]+)\\.", RegexOption.MULTILINE)
@@ -48,7 +49,7 @@ class ArchitectureTest {
             "raw/TimestampMatcher.kt", "diagnostics/Json.kt", "diagnostics/ProcessingReceipt.kt",
             "diagnostics/CapabilityReport.kt", "diagnostics/CaptureLog.kt", "diagnostics/ReceiptSummary.kt",
             "capture/ControlPlanner.kt", "capture/MeteringMath.kt", "capture/LevelMath.kt", "capture/Countdown.kt",
-            "capture/LowLightAdvisor.kt", "capture/OpenGate.kt", "media/PairNaming.kt", "update/UpdatePolicy.kt", "update/UpdateUi.kt"
+            "capture/LowLightAdvisor.kt", "capture/OpenGate.kt", "media/PairNaming.kt", "update/UpdatePolicy.kt", "update/UpdateUi.kt", "looks/LookMath.kt"
         ).map { File(root, it) }
         val offenders = pure.filter { f -> f.readLines().any { it.startsWith("import android.") } }.map { it.name }
         assertTrue("Android imports in pure core: $offenders", offenders.isEmpty())

@@ -1,0 +1,34 @@
+# 0008: Looks (Pixel 11 style) and the exposure slider
+
+- Status: accepted, requested by the owner on 2026-11-03
+- Trace rows: P7 (looks), P8 (exposure slider)
+
+## Context
+The owner asked for (1) a brightness slider on the right of the camera screen instead of the EV button, and (2) Pixel 11 "Camera Looks" "with its exact functionality".
+
+Public reporting (DPReview, Android Central, tested on Pixel 11 series) describes Camera Looks as two layers chosen before the shot:
+- **Base looks** (Original, Natural, Shadows, Vanilla): said to change how the camera collects and processes light (HDR merge strength, shadow depth, edge sharpening) inside Google's pipeline on the Tensor G6 ISP, "not filters".
+- **Creative presets** (Editorial, Velvet, Classic, Digi, Black Tie, Minimal): colour looks on top of a base look, described as emulating film chemistry, digital eras or monochrome.
+- **Controls:** Contrast, Highlights, Shadows, Vibrance, Tint, Warmth (-10..+10), Sharpness (0..15, default 10), Grain (None, Weak, Moderate, Strong); "Always use selected look" keeps the look when the camera reopens.
+
+## What KingShot can match exactly
+The structure and numbers above: the two layers, the names, the control set and its ranges, the sharpness default of 10, the four grain steps, and "Always use selected look". These are tested in `LookMathTest`.
+
+## What KingShot cannot match, and says so
+- Google's base looks run inside Google's closed capture pipeline. Camera2 gives third-party apps no access to HDR merge strength or Google's ISP tuning, so a base look here is a set of tone and sharpness adjustments applied by KingShot to a copy of the saved JPEG, not a change in how the frame is captured.
+- Google's preset colour tables are not public. KingShot's presets are its own parameter recipes with the same names. They will not look identical to Google's.
+- The viewfinder preview is a colour matrix: it shows warmth, tint, contrast, black lift, saturation and monochrome. Shadows, highlights, sharpness and grain appear only in the saved copy.
+- Processing happens after capture, on the phone's JPEG. The JPEG has already been processed by the device, so a look is a second edit, never "unprocessed".
+
+## Decision
+- Looks are pure Kotlin maths (`looks/LookMath.kt`, JVM-tested) plus a thin Android renderer (`looks/LookRenderer.kt`).
+- A look never changes the original. It writes a new JPEG named `<original stem>_<look>.jpg` beside it (the pair rule in CLAUDE.md). The orientation tag is copied from the original; other EXIF fields are not.
+- Renders run one at a time on a worker with a bounded queue (8). If the queue is full the look is skipped and logged; the original is always saved.
+- The default (base) look is remembered. The preset and sliders are remembered only with "Always use selected look", matching the Pixel behaviour described above.
+- No permission, no network, no new library. Nothing here deletes media.
+- The exposure slider uses the camera's own exposure-compensation range and step; it is hidden when the camera reports none. Double tap resets to 0. TalkBack gets a range with set-progress support.
+
+## Consequences
+- Unverified on a device: slider feel and placement, preview filter, render time and memory on a full-size Pixel JPEG, orientation of the copy, look appearance.
+- A renderer limit of 24 megapixels (larger photos are rendered at half size and the log says so).
+- Possible later work: GPU live preview of all controls, applying a look to the DNG through a platform renderer (ADR 0006), user-tuned presets.

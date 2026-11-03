@@ -18,13 +18,21 @@
     <string name="grid">Grid</string>
     <string name="level">Level</string>
     <string name="exposure">Exposure</string>
-    <string name="exposure_decrease">Darker</string>
-    <string name="exposure_increase">Brighter</string>
-    <string name="exposure_reset">Reset</string>
+    <string name="exposure_slider_hint">Drag up for brighter, down for darker. Double tap to reset.</string>
+    <string name="looks">Looks</string>
+    <string name="looks_done">Done</string>
+    <string name="looks_reset">Reset</string>
+    <string name="looks_default">Default look</string>
+    <string name="looks_presets">Presets</string>
+    <string name="looks_adjust">Adjust</string>
+    <string name="looks_grain">Grain</string>
+    <string name="looks_active">Look: %1$s</string>
+    <string name="looks_always">Always use selected look</string>
+    <string name="looks_always_hint">Keeps the preset and adjustments the next time you open the camera. The default look is always kept.</string>
+    <string name="looks_note">A look is applied to a copy saved next to your original; the original JPEG is never changed. The viewfinder preview approximates colour, warmth and contrast. Shadows, highlights, sharpness and grain show only in the saved copy.</string>
     <string name="zoom_selected">%1$s, selected</string>
     <string name="state_on">On</string>
     <string name="state_off">Off</string>
-    <string name="exposure_value">Exposure compensation %1$s</string>
     <string name="profile_line">Profile: %1$s</string>
 
     <!-- Permission -->

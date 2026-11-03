@@ -13,6 +13,7 @@ import android.util.Size
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,6 +40,15 @@ import com.kingshot.camera.diagnostics.ReceiptStore
 import com.kingshot.camera.diagnostics.ReceiptSummary
 import com.kingshot.camera.diagnostics.SelfCheck
 import com.kingshot.camera.diagnostics.SelfCheckPlan
+import com.kingshot.camera.looks.BaseLook
+import com.kingshot.camera.looks.Grain
+import com.kingshot.camera.looks.LookMath
+import com.kingshot.camera.looks.LookParam
+import com.kingshot.camera.looks.LookParams
+import com.kingshot.camera.looks.LookRenderer
+import com.kingshot.camera.looks.LookResult
+import com.kingshot.camera.looks.LookSelection
+import com.kingshot.camera.looks.Preset
 import com.kingshot.camera.media.MediaSaver
 import com.kingshot.camera.media.SaveResult
 import com.kingshot.camera.profiles.NaturalProfile
@@ -60,6 +70,11 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 private val Application.settingsStore by preferencesDataStore(name = "kingshot_settings")
 
@@ -125,13 +140,27 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
                         levelOn = p[KEY_LEVEL] ?: it.levelOn,
                         timerSeconds = p[KEY_TIMER] ?: it.timerSeconds,
                         requestNr = p[KEY_NR] ?: it.requestNr,
-                        requestEdge = p[KEY_EDGE] ?: it.requestEdge
+                        requestEdge = p[KEY_EDGE] ?: it.requestEdge,
+                        lookAlways = p[KEY_LOOK_ALWAYS] ?: it.lookAlways,
+                        lookSelection = readLookSelection(p)
                     )
                 }
             } catch (e: IOException) {
                 LabState.log.add("Settings could not be read; using defaults: ${e.message}")
             }
         }
+    }
+
+    /** Pixel behaviour: the default (base) look always persists; the preset and sliders persist only with "Always use selected look". */
+    private fun readLookSelection(p: androidx.datastore.preferences.core.Preferences): LookSelection {
+        val base = BaseLook.values().firstOrNull { it.name == p[KEY_LOOK_BASE] } ?: BaseLook.ORIGINAL
+        if (p[KEY_LOOK_ALWAYS] != true) return LookSelection(base = base)
+        val preset = Preset.values().firstOrNull { it.name == p[KEY_LOOK_PRESET] } ?: Preset.NONE
+        var params = LookParams(grain = Grain.values().firstOrNull { it.name == p[KEY_LOOK_GRAIN] } ?: Grain.NONE)
+        for (param in LookParam.values()) {
+            p[intPreferencesKey("look_${param.name.lowercase()}")]?.let { params = params.with(param, it) }
+        }
+        return LookSelection(base, preset, params)
     }
 
     private fun saveSettings() {
@@ -144,6 +173,12 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
                     it[KEY_TIMER] = s.timerSeconds
                     it[KEY_NR] = s.requestNr
                     it[KEY_EDGE] = s.requestEdge
+                    it[KEY_LOOK_ALWAYS] = s.lookAlways
+                    it[KEY_LOOK_BASE] = s.lookSelection.base.name
+                    val keep = if (s.lookAlways) s.lookSelection else LookSelection(base = s.lookSelection.base)
+                    it[KEY_LOOK_PRESET] = keep.preset.name
+                    it[KEY_LOOK_GRAIN] = keep.params.grain.name
+                    for (param in LookParam.values()) it[intPreferencesKey("look_${param.name.lowercase()}")] = keep.params[param]
                 }
             } catch (e: IOException) {
                 LabState.log.add("Settings could not be saved: ${e.message}")
@@ -155,6 +190,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         LabState.log.onChanged = null
         InstallEvents.onResult = null
         closeCamera()
+        lookWorker.shutdown()
         super.onCleared()
     }
 
@@ -269,6 +305,11 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         pushControls()
     }
 
+    /** Slider position: an index in the camera's own exposure-compensation range. */
+    fun setEv(index: Int) {
+        if (index != _state.value.evIndex) setEvIndex(index)
+    }
+
     fun resetEv() {
         val m = evMath ?: return
         _state.update { it.copy(evIndex = 0, evLabel = m.label(0)) }
@@ -361,11 +402,33 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         saveSettings()
     }
 
-    fun openSettings() = _state.update { it.copy(showSettings = true, showEv = false) }
+    fun openSettings() = _state.update { it.copy(showSettings = true, showLooks = false) }
 
     fun closeSettings() = _state.update { it.copy(showSettings = false, details = null) }
 
-    fun toggleEv() = _state.update { it.copy(showEv = !it.showEv) }
+    fun openLooks() = _state.update { it.copy(showLooks = true) }
+
+    fun closeLooks() = _state.update { it.copy(showLooks = false) }
+
+    fun setBaseLook(base: BaseLook) = updateLook { it.copy(base = base) }
+
+    fun setPreset(preset: Preset) = updateLook { it.copy(preset = preset) }
+
+    fun setLookParam(param: LookParam, value: Int) = updateLook { it.copy(params = it.params.with(param, value)) }
+
+    fun setGrain(grain: Grain) = updateLook { it.copy(params = it.params.copy(grain = grain)) }
+
+    fun resetLook() = updateLook { LookSelection(base = it.base) }
+
+    fun setLookAlways(on: Boolean) {
+        _state.update { it.copy(lookAlways = on) }
+        saveSettings()
+    }
+
+    private fun updateLook(change: (LookSelection) -> LookSelection) {
+        _state.update { it.copy(lookSelection = change(it.lookSelection)) }
+        saveSettings()
+    }
 
     /** Accelerometer sample in the device frame (portrait-locked screen). */
     fun onGravity(ax: Float, ay: Float, az: Float) {
@@ -568,7 +631,40 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         _state.update { it.copy(rawActive = active, wantRaw = if (it.wantRaw && !active) false else it.wantRaw, cameraReady = true) }
     }
 
+    private val lookSources = ConcurrentHashMap<String, String>()
+    private val lookWorker = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(LOOK_QUEUE))
+
+    /** Renders the selected look onto a paired COPY of a freshly saved JPEG. The original stays untouched. */
+    private fun scheduleLook(uri: Uri, name: String) {
+        val selection = _state.value.lookSelection
+        if (LookMath.recipe(selection).isIdentity) return
+        val app = getApplication<Application>()
+        try {
+            lookWorker.execute {
+                val renderer = LookRenderer(app.contentResolver, MediaSaver(app.contentResolver))
+                when (val result = renderer.render(uri, name, selection)) {
+                    is LookResult.Failed -> LabState.log.add("Look \"${selection.label()}\" was not applied to $name: ${result.reason}. The original is saved.")
+                    is LookResult.Rendered -> {
+                        lookSources[result.name] = name.removeSuffix(".jpg")
+                        LabState.log.add(
+                            "Look \"${selection.label()}\" applied by KingShot to a copy of $name (${result.note}). " +
+                                "Saved as ${result.name}; the original is unchanged."
+                        )
+                        showSaved(result.uri, result.name)
+                    }
+                }
+            }
+        } catch (e: RejectedExecutionException) {
+            LabState.log.add("Look \"${selection.label()}\" skipped for $name: too many copies waiting. The original is saved.")
+        }
+    }
+
     override fun onPhotoSaved(uri: Uri, name: String) {
+        showSaved(uri, name)
+        scheduleLook(uri, name)
+    }
+
+    private fun showSaved(uri: Uri, name: String) {
         val app = getApplication<Application>()
         val bmp = try {
             app.contentResolver.loadThumbnail(uri, Size(THUMB_PX, THUMB_PX), null)
@@ -580,7 +676,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
     }
 
     fun showDetails(photoName: String) {
-        val id = photoName.removeSuffix(".jpg")
+        val id = lookSources[photoName] ?: photoName.removeSuffix(".jpg")
         val r = LabState.results.receipts.firstOrNull { it.captureId == id }
         val text = when {
             r != null -> ReceiptSummary.text(r)
@@ -681,6 +777,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         _state.update {
             it.copy(
                 evAvailable = ev != null, evIndex = 0, evLabel = ev?.label(0) ?: "",
+                evMin = ev?.minIndex ?: 0, evMax = ev?.maxIndex ?: 0,
                 flashAvailable = flashOk, flash = FlashMode.OFF,
                 zoomChoices = stops.map { st -> LensMath.label(st).let { l -> ZoomChoice(l, st.ratio, l.substringBefore(' ')) } },
                 zoomRatio = 1f
@@ -714,6 +811,11 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
         private val KEY_TIMER = intPreferencesKey("timer_seconds")
         private val KEY_NR = booleanPreferencesKey("request_nr_off")
         private val KEY_EDGE = booleanPreferencesKey("request_edge_off")
+        private val KEY_LOOK_ALWAYS = booleanPreferencesKey("look_always")
+        private val KEY_LOOK_BASE = stringPreferencesKey("look_base")
+        private val KEY_LOOK_PRESET = stringPreferencesKey("look_preset")
+        private val KEY_LOOK_GRAIN = stringPreferencesKey("look_grain")
+        private const val LOOK_QUEUE = 8
         private const val NOTES_MAX = 600
         private const val STEP_MS = 2500L
         private const val RAW_REBUILD_MS = 3500L

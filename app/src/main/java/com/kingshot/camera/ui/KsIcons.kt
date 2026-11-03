@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
-enum class KsIcon { FLASH_OFF, FLASH_AUTO, FLASH_ON, TIMER, GRID, LEVEL, SETTINGS, EXPOSURE, CLOSE }
+enum class KsIcon { FLASH_OFF, FLASH_AUTO, FLASH_ON, TIMER, GRID, LEVEL, SETTINGS, EXPOSURE, LOOKS, CLOSE }
 
 /** Simple line icons drawn in a 24-unit space, so there is no icon library or font dependency. Decorative: the parent supplies the description. */
 @Composable
@@ -59,6 +59,11 @@ fun KsIconView(icon: KsIcon, tint: Color, modifier: Modifier = Modifier) {
                 drawLine(tint, p(6f, 8f, u), p(10f, 8f, u), 2f * u, StrokeCap.Round)
                 drawLine(tint, p(8f, 6f, u), p(8f, 10f, u), 2f * u, StrokeCap.Round)
                 drawLine(tint, p(14f, 16f, u), p(18f, 16f, u), 2f * u, StrokeCap.Round)
+            }
+            KsIcon.LOOKS -> {
+                drawCircle(tint, radius = 6f * u, center = p(9f, 9f, u), style = stroke)
+                drawCircle(tint, radius = 6f * u, center = p(15f, 9f, u), style = stroke)
+                drawCircle(tint, radius = 6f * u, center = p(12f, 15f, u), style = stroke)
             }
             KsIcon.CLOSE -> {
                 drawLine(tint, p(5f, 5f, u), p(19f, 19f, u), 2f * u, StrokeCap.Round)

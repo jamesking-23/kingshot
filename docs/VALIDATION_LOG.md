@@ -48,3 +48,8 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 - **Camera 4 is not a separate lens.** The capability report gives it the main camera's focal length (6.81 mm) on a physical size of 4.896x3.6864 mm, exactly a quarter of the main sensor's area (9.792x7.3728 mm). The earlier build would have called it "2x lens". Now: same focal length on a clearly smaller sensor window is labelled "sensor crop" (the strip reads 0.7x lens, 1x lens, 2x sensor crop, 5x digital crop). This rests on characteristics only; how the HAL produces the 2x image (for example crop and remosaic) is not known from them.
 - Exposure at +1 EV (10.2 ms, ISO 240) and -1 EV (11.1 ms, ISO 113) against baseline (33.3 ms, ISO 74-83): the sensor exposure moved in opposite directions to its time/ISO split but the open question about EV brightness is unchanged: JPEG brightness has still not been compared.
 - Low-light wording changed: motion-blur wording for long exposures, noise wording only for high ISO.
+
+## Pending device checks for v0.6.0 (not yet run)
+- DV-L1: right-edge brightness slider: drag up/down changes the preview brightness; double tap returns to 0.0 EV; the thumb does not trigger the Android back gesture.
+- DV-L2: choose a preset (for example Velvet), take one photo: the gallery shows the original and a `_velvetonoriginal.jpg` copy; the original is unchanged; the copy is upright; the capture log has a "Look ... applied by KingShot" line.
+- DV-L3: look render time and memory on a full-size Pixel JPEG (the log does not time it yet).

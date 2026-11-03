@@ -1,6 +1,9 @@
 package com.kingshot.camera.ui
 
 import android.annotation.SuppressLint
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
 import android.graphics.SurfaceTexture
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -27,6 +30,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -68,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingshot.camera.R
 import com.kingshot.camera.capture.FlashMode
 import com.kingshot.camera.capture.LevelMath
+import com.kingshot.camera.looks.LookMath
 
 @Composable
 fun CameraScreen(
@@ -110,8 +115,8 @@ fun CameraScreen(
         if (state.levelOn && sm != null && sensor != null) sm.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
         onDispose { sm?.unregisterListener(listener) }
     }
-    BackHandler(enabled = state.showSettings || state.showEv) {
-        if (state.showSettings) vm.closeSettings() else vm.toggleEv()
+    BackHandler(enabled = state.showSettings || state.showLooks) {
+        if (state.showSettings) vm.closeSettings() else vm.closeLooks()
     }
 
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
@@ -122,7 +127,7 @@ fun CameraScreen(
             } else {
                 TopBar(state, vm)
                 PreviewArea(state, vm, Modifier.weight(1f))
-                if (state.showEv && state.evAvailable) EvPanel(state, vm)
+                if (state.showLooks) LooksPanel(state, vm)
                 BottomBar(state, vm, deviceDegrees)
             }
         }
@@ -192,6 +197,15 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
             shutterFlash.animateTo(0f, tween(220))
         }
     }
+    // The viewfinder shows an approximation of the selected look (colour, warmth, contrast); the saved copy gets the full look.
+    val lookPaint = remember(state.lookSelection) {
+        val recipe = LookMath.recipe(state.lookSelection)
+        if (recipe.isIdentity) {
+            null
+        } else {
+            Paint().apply { colorFilter = ColorMatrixColorFilter(ColorMatrix(LookMath.previewMatrix(recipe))) }
+        }
+    }
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         // The sensor buffer is landscape and the screen is portrait-locked, so the visible ratio is height / width.
         val sized = if (state.previewWidth > 0 && state.previewHeight > 0) {
@@ -224,6 +238,7 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
                         surfaceTexture?.let { vm.onSurfaceAvailable(it) }
                     }
                 },
+                update = { view -> view.setLayerPaint(lookPaint) },
                 modifier = Modifier.fillMaxSize().semantics { contentDescription = previewDescription }
             )
             Overlays(state)
@@ -235,6 +250,7 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
             }
         }
         PreviewChips(state, vm)
+        if (state.evAvailable) EvSlider(state, vm, Modifier.align(Alignment.CenterEnd).padding(end = 12.dp).fillMaxHeight(0.55f))
         if (state.zoomChoices.size > 1) ZoomPills(state, vm, Modifier.align(Alignment.BottomCenter))
     }
 }
@@ -243,9 +259,9 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
 private fun PreviewChips(state: CameraUiState, vm: CameraViewModel) {
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         state.lowLight?.let { Chip(it, Palette.Accent, Modifier.fillMaxWidth()) }
-        if (state.evAvailable && state.evIndex != 0) {
-            val evText = stringResource(R.string.exposure_value, state.evLabel)
-            Chip(state.evLabel, Palette.Accent, Modifier.clickable(role = Role.Button) { vm.toggleEv() }.semantics { contentDescription = evText })
+        if (!LookMath.recipe(state.lookSelection).isIdentity) {
+            val lookText = stringResource(R.string.looks_active, state.lookSelection.label())
+            Chip(lookText, Palette.Accent, Modifier.clickable(role = Role.Button) { vm.openLooks() })
         }
     }
 }
@@ -315,38 +331,6 @@ private fun Overlays(state: CameraUiState) {
 // ---------------------------------------------------------------- exposure panel and bottom bar
 
 @Composable
-private fun EvPanel(state: CameraUiState, vm: CameraViewModel) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RoundButton("−", stringResource(R.string.exposure_decrease)) { vm.stepEv(-1) }
-        BasicText(
-            state.evLabel,
-            Modifier.size(width = 96.dp, height = 48.dp).padding(top = 12.dp),
-            style = TextStyle(color = Palette.Text, fontSize = 17.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-        )
-        RoundButton("+", stringResource(R.string.exposure_increase)) { vm.stepEv(1) }
-        ActionButton(stringResource(R.string.exposure_reset), vm::resetEv, enabled = state.evIndex != 0)
-    }
-}
-
-@Composable
-private fun RoundButton(text: String, description: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(48.dp)
-            .background(Palette.SurfaceHigh, CircleShape)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center
-    ) {
-        BasicText(text, style = TextStyle(color = Palette.Text, fontSize = 24.sp))
-    }
-}
-
-@Composable
 private fun BottomBar(state: CameraUiState, vm: CameraViewModel, deviceDegrees: () -> Int) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 14.dp),
@@ -356,7 +340,7 @@ private fun BottomBar(state: CameraUiState, vm: CameraViewModel, deviceDegrees: 
         val latest = state.photos.firstOrNull()
         val thumb = state.thumbnail
         val openDescription = stringResource(R.string.open_latest_photo)
-        val exposureDescription = stringResource(R.string.exposure)
+        val looksDescription = stringResource(R.string.looks)
         if (latest != null && thumb != null) {
             Image(
                 bitmap = thumb.asImageBitmap(),
@@ -373,20 +357,17 @@ private fun BottomBar(state: CameraUiState, vm: CameraViewModel, deviceDegrees: 
             Box(Modifier.size(56.dp).border(2.dp, Palette.SurfaceHigh, RoundedCornerShape(14.dp)))
         }
         ShutterButton(enabled = state.cameraReady, counting = state.countdownLeft > 0) { vm.takePhoto(deviceDegrees()) }
-        if (state.evAvailable) {
-            val evOpen = state.showEv
-            Box(
-                Modifier
-                    .size(56.dp)
-                    .background(if (evOpen) Palette.SurfaceHigh else Color.Transparent, CircleShape)
-                    .clickable(role = Role.Button) { vm.toggleEv() }
-                    .semantics { contentDescription = exposureDescription },
-                contentAlignment = Alignment.Center
-            ) {
-                KsIconView(KsIcon.EXPOSURE, if (state.evIndex != 0 || evOpen) Palette.Accent else Palette.Text)
-            }
-        } else {
-            Spacer(Modifier.size(56.dp))
+        val looksOpen = state.showLooks
+        val looksActive = !LookMath.recipe(state.lookSelection).isIdentity
+        Box(
+            Modifier
+                .size(56.dp)
+                .background(if (looksOpen) Palette.SurfaceHigh else Color.Transparent, CircleShape)
+                .clickable(role = Role.Button) { if (looksOpen) vm.closeLooks() else vm.openLooks() }
+                .semantics { contentDescription = looksDescription },
+            contentAlignment = Alignment.Center
+        ) {
+            KsIconView(KsIcon.LOOKS, if (looksActive || looksOpen) Palette.Accent else Palette.Text)
         }
     }
 }
