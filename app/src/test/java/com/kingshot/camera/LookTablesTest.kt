@@ -66,10 +66,14 @@ class LookTablesTest {
     fun everyTableValueIsAValidColour() {
         for (p in presets) {
             val table = lut(p)
-            for (r in 0 until table.size step 4) for (g in 0 until table.size step 4) for (b in 0 until table.size step 4) {
-                for (c in 0..2) {
-                    val v = table.node(r, g, b, c)
-                    assertTrue("$p [$r,$g,$b,$c] = $v", v in 0f..1f)
+            for (r in 0 until table.size step 4) {
+                for (g in 0 until table.size step 4) {
+                    for (b in 0 until table.size step 4) {
+                        for (c in 0..2) {
+                            val v = table.node(r, g, b, c)
+                            assertTrue("$p [$r,$g,$b,$c] = $v", v in 0f..1f)
+                        }
+                    }
                 }
             }
         }
@@ -94,11 +98,15 @@ class LookTablesTest {
     @Test
     fun blackTieStaysNeutralEverywhere() {
         val t = lut(Preset.BLACK_TIE)
-        for (r in 0 until t.size step 2) for (g in 0 until t.size step 2) for (b in 0 until t.size step 2) {
-            val tr = t.node(r, g, b, 0)
-            val tg = t.node(r, g, b, 1)
-            val tb = t.node(r, g, b, 2)
-            assertTrue("[$r,$g,$b]", Math.abs(tr - tg) < 0.03f && Math.abs(tg - tb) < 0.03f)
+        for (r in 0 until t.size step 2) {
+            for (g in 0 until t.size step 2) {
+                for (b in 0 until t.size step 2) {
+                    val tr = t.node(r, g, b, 0)
+                    val tg = t.node(r, g, b, 1)
+                    val tb = t.node(r, g, b, 2)
+                    assertTrue("[$r,$g,$b]", Math.abs(tr - tg) < 0.03f && Math.abs(tg - tb) < 0.03f)
+                }
+            }
         }
     }
 
@@ -143,13 +151,17 @@ class LookTablesTest {
             var sum = 0.0
             var n = 0
             val tmp = FloatArray(3)
-            for (r in 0..5) for (g in 0..5) for (b in 0..5) {
-                val x = floatArrayOf(r / 5f, g / 5f, b / 5f)
-                LookMath.transform(x[0], x[1], x[2], recipe, ref, tmp)
-                for (c in 0..2) {
-                    val fit = m[c * 5] * x[0] + m[c * 5 + 1] * x[1] + m[c * 5 + 2] * x[2] + m[c * 5 + 4] / 255f
-                    sum += (fit - tmp[c]) * (fit - tmp[c])
-                    n++
+            for (r in 0..5) {
+                for (g in 0..5) {
+                    for (b in 0..5) {
+                        val x = floatArrayOf(r / 5f, g / 5f, b / 5f)
+                        LookMath.transform(x[0], x[1], x[2], recipe, ref, tmp)
+                        for (c in 0..2) {
+                            val fit = m[c * 5] * x[0] + m[c * 5 + 1] * x[1] + m[c * 5 + 2] * x[2] + m[c * 5 + 4] / 255f
+                            sum += (fit - tmp[c]) * (fit - tmp[c])
+                            n++
+                        }
+                    }
                 }
             }
             val rms = Math.sqrt(sum / n)
