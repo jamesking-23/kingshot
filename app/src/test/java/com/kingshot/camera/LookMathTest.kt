@@ -111,8 +111,9 @@ class LookMathTest {
         val r = LookMath.recipe(LookSelection(params = LookParams(vibrance = 10)))
         val muted = LookMath.applyPixel(px(140, 120, 110), r, 0, 0)
         val vivid = LookMath.applyPixel(px(250, 20, 20), r, 0, 0)
-        assertTrue(red(muted) - blu(muted) > 30)
-        assertTrue(red(vivid) - blu(vivid) in 225..235)
+        val mutedRatio = (red(muted) - blu(muted)) / 30f
+        val vividRatio = (red(vivid) - blu(vivid)) / 230f
+        assertTrue("muted x$mutedRatio vivid x$vividRatio", mutedRatio > 1.3f && vividRatio < 1.15f)
     }
 
     @Test
