@@ -32,3 +32,10 @@ The structure and numbers above: the two layers, the names, the control set and 
 - Unverified on a device: slider feel and placement, preview filter, render time and memory on a full-size Pixel JPEG, orientation of the copy, look appearance.
 - A renderer limit of 24 megapixels (larger photos are rendered at half size and the log says so).
 - Possible later work: GPU live preview of all controls, applying a look to the DNG through a platform renderer (ADR 0006), user-tuned presets.
+
+## Update 2026-11-03 (v0.7.0): designed colour tables and swipe switching
+- Google's tables are not public, so KingShot designs its own. Each preset is a recipe in OKLab (perceptual lightness and colour): an S-curve on lightness with black lift and white drop, overall and per-hue colourfulness and hue shifts, shadow and highlight tints, and a gamut-mapping step that gives up colour at constant lightness and hue instead of clipping channels. The recipes (`looks/LookTables.kt`) are baked into 33x33x33 tables and read with trilinear interpolation. The same maths was prototyped in Python on a real photograph and a colour chart to judge the looks by eye before porting; the Kotlin is tested for grey-axis monotonicity, neutral Black Tie, faded Classic blacks, valid colours, skin staying warm, and the preview fit.
+- The recipes were designed by eye on one indoor photo and a chart, not tuned across many scenes or skin tones; expect to adjust them after you shoot with them.
+- Order: base look and sliders first, then the preset's table, then grain. Presets no longer add slider offsets.
+- Switching: swipe the viewfinder horizontally (64 dp, mostly horizontal) to move through Original and the six presets; tap-to-focus is unchanged. TalkBack gets Next look / Previous look actions. The name chip at the top opens the adjust panel.
+- The viewfinder preview is a 4x5 colour matrix fitted by least squares to the real pipeline. It follows colour balance and saturation but cannot bend a curve, so it is least accurate for Digi (fit error about 0.15 in sRGB units on a colour grid).

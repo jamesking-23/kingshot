@@ -9,6 +9,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.TextureView
 import android.widget.Toast
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -58,8 +60,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
@@ -73,6 +77,8 @@ import com.kingshot.camera.R
 import com.kingshot.camera.capture.FlashMode
 import com.kingshot.camera.capture.LevelMath
 import com.kingshot.camera.looks.LookMath
+import com.kingshot.camera.looks.LookTables
+import kotlin.math.abs
 
 @Composable
 fun CameraScreen(
@@ -190,6 +196,8 @@ private fun TopPill(icon: KsIcon, label: String?, description: String, active: B
 @Composable
 private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Modifier) {
     val previewDescription = stringResource(R.string.preview_description)
+    val nextLook = stringResource(R.string.look_next)
+    val previousLook = stringResource(R.string.look_previous)
     val shutterFlash = remember { Animatable(0f) }
     LaunchedEffect(state.shutterTick) {
         if (state.shutterTick > 0) {
@@ -203,7 +211,8 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
         if (recipe.isIdentity) {
             null
         } else {
-            Paint().apply { colorFilter = ColorMatrixColorFilter(ColorMatrix(LookMath.previewMatrix(recipe))) }
+            val matrix = LookMath.previewMatrix(recipe, LookTables.lutFor(recipe.preset))
+            Paint().apply { colorFilter = ColorMatrixColorFilter(ColorMatrix(matrix)) }
         }
     }
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -227,10 +236,23 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
 
                             override fun onSurfaceTextureUpdated(st: SurfaceTexture) = vm.onPreviewFrame()
                         }
+                        var downX = 0f
+                        var downY = 0f
                         setOnTouchListener { v, e ->
-                            if (e.actionMasked == MotionEvent.ACTION_UP && v.width > 0 && v.height > 0) {
-                                vm.onTap((e.x / v.width).coerceIn(0f, 1f), (e.y / v.height).coerceIn(0f, 1f))
-                                v.performClick()
+                            if (e.actionMasked == MotionEvent.ACTION_DOWN) {
+                                downX = e.x
+                                downY = e.y
+                            } else if (e.actionMasked == MotionEvent.ACTION_UP && v.width > 0 && v.height > 0) {
+                                val dx = e.x - downX
+                                val dy = e.y - downY
+                                val threshold = SWIPE_DP * v.resources.displayMetrics.density
+                                if (abs(dx) > threshold && abs(dx) > 2 * abs(dy)) {
+                                    // Swipe left for the next look, right for the previous one, like the Pixel 11 camera.
+                                    if (vm.swipeLook(if (dx < 0) 1 else -1)) v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                } else {
+                                    vm.onTap((e.x / v.width).coerceIn(0f, 1f), (e.y / v.height).coerceIn(0f, 1f))
+                                    v.performClick()
+                                }
                             }
                             true
                         }
@@ -239,7 +261,13 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
                     }
                 },
                 update = { view -> view.setLayerPaint(lookPaint) },
-                modifier = Modifier.fillMaxSize().semantics { contentDescription = previewDescription }
+                modifier = Modifier.fillMaxSize().semantics {
+                    contentDescription = previewDescription
+                    customActions = listOf(
+                        CustomAccessibilityAction(nextLook) { vm.swipeLook(1) },
+                        CustomAccessibilityAction(previousLook) { vm.swipeLook(-1) }
+                    )
+                }
             )
             Overlays(state)
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = shutterFlash.value)))
@@ -250,6 +278,7 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
             }
         }
         PreviewChips(state, vm)
+        LookChip(state, vm, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         if (state.evAvailable) EvSlider(state, vm, Modifier.align(Alignment.CenterEnd).padding(end = 12.dp).fillMaxHeight(0.55f))
         if (state.zoomChoices.size > 1) ZoomPills(state, vm, Modifier.align(Alignment.BottomCenter))
     }
@@ -257,12 +286,30 @@ private fun PreviewArea(state: CameraUiState, vm: CameraViewModel, modifier: Mod
 
 @Composable
 private fun PreviewChips(state: CameraUiState, vm: CameraViewModel) {
-    Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 60.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         state.lowLight?.let { Chip(it, Palette.Accent, Modifier.fillMaxWidth()) }
-        if (!LookMath.recipe(state.lookSelection).isIdentity) {
-            val lookText = stringResource(R.string.looks_active, state.lookSelection.label())
-            Chip(lookText, Palette.Accent, Modifier.clickable(role = Role.Button) { vm.openLooks() })
-        }
+    }
+}
+
+/** The current look's name at the top of the viewfinder. Swipe the viewfinder to change it; tap the name to adjust. */
+@Composable
+private fun LookChip(state: CameraUiState, vm: CameraViewModel, modifier: Modifier) {
+    val name = state.lookSelection.shortLabel()
+    val description = stringResource(R.string.looks_active, name)
+    val active = !LookMath.recipe(state.lookSelection).isIdentity
+    Box(
+        modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .background(Color(0x99000000), RoundedCornerShape(24.dp))
+            .clickable(role = Role.Button) { if (state.showLooks) vm.closeLooks() else vm.openLooks() }
+            .semantics { contentDescription = description }
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        BasicText(
+            name,
+            style = TextStyle(color = if (active) Palette.Accent else Palette.Text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        )
     }
 }
 
@@ -340,7 +387,6 @@ private fun BottomBar(state: CameraUiState, vm: CameraViewModel, deviceDegrees: 
         val latest = state.photos.firstOrNull()
         val thumb = state.thumbnail
         val openDescription = stringResource(R.string.open_latest_photo)
-        val looksDescription = stringResource(R.string.looks)
         if (latest != null && thumb != null) {
             Image(
                 bitmap = thumb.asImageBitmap(),
@@ -357,18 +403,7 @@ private fun BottomBar(state: CameraUiState, vm: CameraViewModel, deviceDegrees: 
             Box(Modifier.size(56.dp).border(2.dp, Palette.SurfaceHigh, RoundedCornerShape(14.dp)))
         }
         ShutterButton(enabled = state.cameraReady, counting = state.countdownLeft > 0) { vm.takePhoto(deviceDegrees()) }
-        val looksOpen = state.showLooks
-        val looksActive = !LookMath.recipe(state.lookSelection).isIdentity
-        Box(
-            Modifier
-                .size(56.dp)
-                .background(if (looksOpen) Palette.SurfaceHigh else Color.Transparent, CircleShape)
-                .clickable(role = Role.Button) { if (looksOpen) vm.closeLooks() else vm.openLooks() }
-                .semantics { contentDescription = looksDescription },
-            contentAlignment = Alignment.Center
-        ) {
-            KsIconView(KsIcon.LOOKS, if (looksActive || looksOpen) Palette.Accent else Palette.Text)
-        }
+        Spacer(Modifier.size(56.dp))
     }
 }
 
@@ -414,3 +449,5 @@ private fun PermissionPanel(onRequest: () -> Unit, onOpenSettings: () -> Unit, m
         ActionButton(stringResource(R.string.permission_open_settings), onOpenSettings)
     }
 }
+
+private const val SWIPE_DP = 64f

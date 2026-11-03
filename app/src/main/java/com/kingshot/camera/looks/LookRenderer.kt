@@ -78,12 +78,14 @@ class LookRenderer(private val resolver: ContentResolver, private val saver: Med
         var cur = IntArray(w)
         var next = IntArray(w)
         val out = IntArray(w)
+        val lut = LookTables.lutFor(recipe.preset)
+        val scratch = FloatArray(3)
         bitmap.getPixels(cur, 0, w, 0, 0, w, 1)
         System.arraycopy(cur, 0, prev, 0, w)
         for (y in 0 until h) {
             if (y + 1 < h) bitmap.getPixels(next, 0, w, 0, y + 1, w, 1) else System.arraycopy(cur, 0, next, 0, w)
             LookMath.detailRow(prev, cur, next, out, w, amount)
-            for (x in 0 until w) out[x] = LookMath.applyPixel(out[x], recipe, x, y)
+            for (x in 0 until w) out[x] = LookMath.applyPixel(out[x], recipe, x, y, lut, scratch)
             bitmap.setPixels(out, 0, w, 0, y, w, 1)
             val recycled = prev
             prev = cur

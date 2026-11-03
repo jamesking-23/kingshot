@@ -84,11 +84,14 @@ data class LookSelection(val base: BaseLook = BaseLook.ORIGINAL, val preset: Pre
         else -> base.label
     }
 
+    /** The name shown over the viewfinder: the preset if one is chosen, otherwise the default look. */
+    fun shortLabel(): String = if (preset != Preset.NONE) preset.label else base.label
+
     /** File-name suffix, letters only. */
     fun fileTag(): String = label().filter { it.isLetterOrDigit() }.lowercase()
 }
 
-/** Final numbers for one photo: slider units (-10..10), sharpness 0..15, grain strength, black lift and a mono flag. */
+/** Final numbers for one photo: slider units (-10..10), sharpness 0..15, grain strength and the preset whose colour table applies. */
 data class LookRecipe(
     val contrast: Float,
     val highlights: Float,
@@ -98,14 +101,13 @@ data class LookRecipe(
     val warmth: Float,
     val sharpness: Float,
     val grain: Float,
-    val fade: Float,
-    val mono: Boolean
+    val preset: Preset
 ) {
     /** True when the recipe would leave every pixel unchanged, so no copy is made. */
     val isIdentity: Boolean
         get() {
-            val flat = listOf(contrast, highlights, shadows, vibrance, tint, warmth, grain, fade).all { it == 0f }
-            return flat && sharpness == NEUTRAL_SHARPNESS && !mono
+            val flat = listOf(contrast, highlights, shadows, vibrance, tint, warmth, grain).all { it == 0f }
+            return flat && sharpness == NEUTRAL_SHARPNESS && preset == Preset.NONE
         }
 
     companion object {
@@ -119,12 +121,7 @@ object LookMath {
         val highlights: Int = 0,
         val shadows: Int = 0,
         val vibrance: Int = 0,
-        val tint: Int = 0,
-        val warmth: Int = 0,
-        val sharpness: Int = 0,
-        val grain: Grain = Grain.NONE,
-        val fade: Float = 0f,
-        val mono: Boolean = false
+        val sharpness: Int = 0
     )
 
     private fun delta(base: BaseLook): Delta = when (base) {
@@ -134,34 +131,27 @@ object LookMath {
         BaseLook.VANILLA -> Delta(contrast = -3, highlights = -2, shadows = 2, vibrance = -1, sharpness = -2)
     }
 
-    private fun delta(preset: Preset): Delta = when (preset) {
-        Preset.NONE -> Delta()
-        Preset.EDITORIAL -> Delta(contrast = 2, vibrance = 1, warmth = -1, sharpness = 1)
-        Preset.VELVET -> Delta(contrast = -1, shadows = 2, vibrance = 2, warmth = 2, tint = 1, sharpness = -1)
-        Preset.CLASSIC -> Delta(contrast = 2, vibrance = -2, warmth = 2, grain = Grain.WEAK, fade = 0.05f)
-        Preset.DIGI -> Delta(contrast = 3, vibrance = 3, warmth = -2, sharpness = 3)
-        Preset.BLACK_TIE -> Delta(contrast = 3, highlights = -1, grain = Grain.WEAK, mono = true)
-        Preset.MINIMAL -> Delta(contrast = -1, vibrance = -4, sharpness = -2)
+    /** Film-like grain that comes with a preset, on top of the Grain control. */
+    private fun presetGrain(preset: Preset): Grain = when (preset) {
+        Preset.CLASSIC, Preset.BLACK_TIE -> Grain.WEAK
+        else -> Grain.NONE
     }
 
-    /** Base look, then preset, then the user's own sliders, added together and clamped to each control's range. */
+    /** Base look and the user's sliders add together (clamped to each range); the preset adds its own colour table and grain. */
     fun recipe(sel: LookSelection): LookRecipe {
         val b = delta(sel.base)
-        val s = delta(sel.preset)
         val p = sel.params
-        fun sum(param: LookParam, userValue: Int, db: Int, ds: Int): Float = (userValue + db + ds).coerceIn(param.min, param.max).toFloat()
-        val grain = maxOf(p.grain.amount, b.grain.amount, s.grain.amount)
+        fun sum(param: LookParam, userValue: Int, db: Int): Float = (userValue + db).coerceIn(param.min, param.max).toFloat()
         return LookRecipe(
-            contrast = sum(LookParam.CONTRAST, p.contrast, b.contrast, s.contrast),
-            highlights = sum(LookParam.HIGHLIGHTS, p.highlights, b.highlights, s.highlights),
-            shadows = sum(LookParam.SHADOWS, p.shadows, b.shadows, s.shadows),
-            vibrance = sum(LookParam.VIBRANCE, p.vibrance, b.vibrance, s.vibrance),
-            tint = sum(LookParam.TINT, p.tint, b.tint, s.tint),
-            warmth = sum(LookParam.WARMTH, p.warmth, b.warmth, s.warmth),
-            sharpness = sum(LookParam.SHARPNESS, p.sharpness, b.sharpness, s.sharpness),
-            grain = grain,
-            fade = maxOf(b.fade, s.fade),
-            mono = b.mono || s.mono
+            contrast = sum(LookParam.CONTRAST, p.contrast, b.contrast),
+            highlights = sum(LookParam.HIGHLIGHTS, p.highlights, b.highlights),
+            shadows = sum(LookParam.SHADOWS, p.shadows, b.shadows),
+            vibrance = sum(LookParam.VIBRANCE, p.vibrance, b.vibrance),
+            tint = p.tint.toFloat(),
+            warmth = p.warmth.toFloat(),
+            sharpness = sum(LookParam.SHARPNESS, p.sharpness, b.sharpness),
+            grain = maxOf(p.grain.amount, presetGrain(sel.preset).amount),
+            preset = sel.preset
         )
     }
 
@@ -180,13 +170,14 @@ object LookMath {
         return ((h and 0xFFFF) / 32767.5f) - 1f
     }
 
-    /** Tone and colour for one ARGB pixel. Sharpness is a neighbourhood effect and is applied separately by [detailRow]. */
-    fun applyPixel(argb: Int, k: LookRecipe, x: Int, y: Int): Int {
-        val a = (argb ushr 24) and 0xFF
-        var r = ((argb shr 16) and 0xFF) / 255f
-        var g = ((argb shr 8) and 0xFF) / 255f
-        var b = (argb and 0xFF) / 255f
-
+    /**
+     * Tone and colour for one sRGB colour (0..1): the sliders and base look first, then the preset's colour table.
+     * The result is left in [out]. Grain and sharpness are separate steps.
+     */
+    fun transform(rIn: Float, gIn: Float, bIn: Float, k: LookRecipe, lut: LookLut?, out: FloatArray) {
+        var r = rIn
+        var g = gIn
+        var b = bIn
         val w = k.warmth / 10f
         val t = k.tint / 10f
         r *= 1f + WARMTH_GAIN * w
@@ -198,7 +189,6 @@ object LookMath {
         l2 += k.highlights / 10f * HIGHLIGHT_RANGE * smooth(0.45f, 1f, l)
         l2 += k.shadows / 10f * SHADOW_RANGE * (1f - smooth(0f, 0.55f, l))
         l2 = (0.5f + (l2 - 0.5f) * (1f + CONTRAST_RANGE * k.contrast / 10f)).coerceIn(0f, 1f)
-        l2 = l2 * (1f - k.fade) + k.fade
         if (l > 1e-4f) {
             val gain = (l2 / l).coerceAtMost(MAX_GAIN)
             r = (r * gain).coerceIn(0f, 1f)
@@ -210,12 +200,8 @@ object LookMath {
             b = l2
         }
 
-        val lum = luma(r, g, b)
-        if (k.mono) {
-            r = lum
-            g = lum
-            b = lum
-        } else if (k.vibrance != 0f) {
+        if (k.vibrance != 0f) {
+            val lum = luma(r, g, b)
             val mx = maxOf(r, g, b)
             val mn = minOf(r, g, b)
             val sat = if (mx > 0f) (mx - mn) / mx else 0f
@@ -224,7 +210,24 @@ object LookMath {
             g = (lum + (g - lum) * f).coerceIn(0f, 1f)
             b = (lum + (b - lum) * f).coerceIn(0f, 1f)
         }
+        if (lut != null) {
+            lut.sample(r, g, b)
+            r = lut.r
+            g = lut.g
+            b = lut.b
+        }
+        out[0] = r
+        out[1] = g
+        out[2] = b
+    }
 
+    /** One ARGB pixel through [transform], then grain. [scratch] must hold 3 floats; pass the same array for every pixel. */
+    fun applyPixel(argb: Int, k: LookRecipe, x: Int, y: Int, lut: LookLut? = null, scratch: FloatArray = FloatArray(3)): Int {
+        val a = (argb ushr 24) and 0xFF
+        transform(((argb shr 16) and 0xFF) / 255f, ((argb shr 8) and 0xFF) / 255f, (argb and 0xFF) / 255f, k, lut, scratch)
+        var r = scratch[0]
+        var g = scratch[1]
+        var b = scratch[2]
         if (k.grain > 0f) {
             val n = noiseAt(x, y) * k.grain
             r = (r + n).coerceIn(0f, 1f)
@@ -268,29 +271,69 @@ object LookMath {
     private fun ch(argb: Int, shift: Int): Int = (argb shr shift) and 0xFF
 
     /**
-     * A 4x5 colour matrix (Android ColorMatrix layout, offsets in 0..255) for the live viewfinder preview.
-     * It covers only what a matrix can do: warmth, tint, contrast, black lift, saturation and mono.
-     * Shadows, highlights, sharpness and grain appear only in the saved copy.
+     * A 4x5 colour matrix (Android ColorMatrix layout, offsets in 0..255) for the live viewfinder preview, fitted by least squares to the
+     * real pipeline over a grid of colours. A matrix cannot bend a curve, so it follows the overall colour balance, saturation and
+     * contrast but not the S-curve, lifted blacks or per-hue changes; the saved copy gets the full look.
      */
-    fun previewMatrix(k: LookRecipe): FloatArray {
-        val s = if (k.mono) 0f else 1f + PREVIEW_SATURATION * k.vibrance / 10f
-        val w = k.warmth / 10f
-        val t = k.tint / 10f
-        val scale = floatArrayOf(1f + WARMTH_GAIN * w, 1f - TINT_GAIN * t, 1f - WARMTH_GAIN * w)
-        val lum = floatArrayOf(0.2126f, 0.7152f, 0.0722f)
-        val c = 1f + CONTRAST_RANGE * k.contrast / 10f
-        val gain = c * (1f - k.fade)
-        val offset = (0.5f * (1f - c) * (1f - k.fade) + k.fade) * 255f
-        val m = FloatArray(20)
-        for (row in 0 until 3) {
-            for (col in 0 until 3) {
-                val satEntry = lum[col] * (1f - s) + if (row == col) s else 0f
-                m[row * 5 + col] = satEntry * scale[col] * gain
+    fun previewMatrix(k: LookRecipe, lut: LookLut?): FloatArray {
+        val steps = 6
+        val points = steps * steps * steps
+        val x = Array(points) { FloatArray(3) }
+        val y = Array(points) { FloatArray(3) }
+        val tmp = FloatArray(3)
+        var n = 0
+        for (ri in 0 until steps) {
+            for (gi in 0 until steps) {
+                for (bi in 0 until steps) {
+                    x[n][0] = ri / (steps - 1f)
+                    x[n][1] = gi / (steps - 1f)
+                    x[n][2] = bi / (steps - 1f)
+                    transform(x[n][0], x[n][1], x[n][2], k, lut, tmp)
+                    y[n][0] = tmp[0]
+                    y[n][1] = tmp[1]
+                    y[n][2] = tmp[2]
+                    n++
+                }
             }
-            m[row * 5 + 4] = offset
+        }
+        val m = FloatArray(20)
+        for (channel in 0 until 3) {
+            val w = fitChannel(x, y, channel)
+            m[channel * 5] = w[0]
+            m[channel * 5 + 1] = w[1]
+            m[channel * 5 + 2] = w[2]
+            m[channel * 5 + 4] = w[3] * 255f
         }
         m[18] = 1f
         return m
+    }
+
+    /** Least squares for out = w0*r + w1*g + w2*b + w3, by the normal equations and Gaussian elimination. */
+    private fun fitChannel(x: Array<FloatArray>, y: Array<FloatArray>, channel: Int): FloatArray {
+        val a = Array(4) { DoubleArray(5) }
+        for (i in x.indices) {
+            val row = doubleArrayOf(x[i][0].toDouble(), x[i][1].toDouble(), x[i][2].toDouble(), 1.0)
+            for (r in 0 until 4) {
+                for (c in 0 until 4) a[r][c] += row[r] * row[c]
+                a[r][4] += row[r] * y[i][channel]
+            }
+        }
+        for (col in 0 until 4) {
+            var pivot = col
+            for (r in col + 1 until 4) if (abs(a[r][col]) > abs(a[pivot][col])) pivot = r
+            val swap = a[col]
+            a[col] = a[pivot]
+            a[pivot] = swap
+            val d = a[col][col]
+            if (abs(d) < 1e-9) continue
+            for (c in col until 5) a[col][c] /= d
+            for (r in 0 until 4) {
+                if (r == col) continue
+                val f = a[r][col]
+                for (c in col until 5) a[r][c] -= f * a[col][c]
+            }
+        }
+        return FloatArray(4) { a[it][4].toFloat() }
     }
 
     /** Largest absolute difference between two matrices; used by tests. */
@@ -303,6 +346,5 @@ object LookMath {
     private const val SHADOW_RANGE = 0.25f
     private const val CONTRAST_RANGE = 0.6f
     private const val VIBRANCE_RANGE = 0.6f
-    private const val PREVIEW_SATURATION = 0.3f
     private const val MAX_GAIN = 4f
 }

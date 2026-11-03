@@ -6,7 +6,7 @@ Goal: look and behave like a normal camera app, with KingShot's honesty rules vi
 - **Top bar:** flash (only if the camera has one), timer, grid, level, settings. Icons are drawn in code (no icon library). Each has a spoken label and, for on/off items, a state.
 - **Preview:** fills the space between the bars at the sensor's aspect ratio. Tap to focus (ring shows). Chips: low-light readout (what the camera measured), the active look. A vertical brightness slider sits on the right edge (drag up/down, double tap resets); its range comes from the camera.
 - **Zoom buttons over the preview:** one per position the camera reports. A caption under them says exactly what the selected position is: "lens", "sensor crop" or "digital crop". Never "optical" for a crop.
-- **Bottom bar:** latest photo (opens in your viewer), shutter (press animation, haptic tick, screen dip on capture; turns red and cancels during the self-timer), Looks button (opens the Looks panel: default look, presets, sliders, grain, "Always use selected look").
+- **Bottom bar:** latest photo (opens in your viewer), shutter (press animation, haptic tick, screen dip on capture; turns red and cancels during the self-timer), nothing on the right (no Looks button). Swipe the viewfinder left or right to change the look; tap the look name at the top to adjust (default look, presets, sliders, grain, "Always use selected look").
 - **Settings (full screen):** photo processing requests and the plain-language disclosure, RAW, recent photos with receipt Details, diagnostics (self-check, export bundle, log), about and privacy.
 - **Camera permission denied:** an explanation, "Allow camera" and "Open settings". The app asks once per launch while undecided, not on every resume.
 

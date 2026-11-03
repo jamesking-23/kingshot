@@ -53,3 +53,8 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 - DV-L1: right-edge brightness slider: drag up/down changes the preview brightness; double tap returns to 0.0 EV; the thumb does not trigger the Android back gesture.
 - DV-L2: choose a preset (for example Velvet), take one photo: the gallery shows the original and a `_velvetonoriginal.jpg` copy; the original is unchanged; the copy is upright; the capture log has a "Look ... applied by KingShot" line.
 - DV-L3: look render time and memory on a full-size Pixel JPEG (the log does not time it yet).
+
+## Pending device checks for v0.7.0 (not yet run)
+- DV-L4: swipe the viewfinder left and right: the name at the top changes through Original, Editorial, Velvet, Classic, Digi, Black Tie, Minimal; a small haptic tick on each change; tap still focuses.
+- DV-L5: take one photo per preset and compare the saved copies on the phone's screen; note any look that is too strong, banded, or has odd skin tones (send the photos).
+- DV-L6: tap a look name: the adjust panel opens and the viewfinder tint follows the sliders.

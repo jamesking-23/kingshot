@@ -414,6 +414,16 @@ class CameraViewModel(app: Application) : AndroidViewModel(app), LabEvents {
 
     fun setPreset(preset: Preset) = updateLook { it.copy(preset = preset) }
 
+    /** Moves to the next (+1) or previous (-1) preset in the carousel: Original, then the six presets. False at either end. */
+    fun swipeLook(direction: Int): Boolean {
+        val presets = Preset.values()
+        val current = presets.indexOf(_state.value.lookSelection.preset)
+        val next = (current + direction).coerceIn(0, presets.lastIndex)
+        if (next == current) return false
+        setPreset(presets[next])
+        return true
+    }
+
     fun setLookParam(param: LookParam, value: Int) = updateLook { it.copy(params = it.params.with(param, value)) }
 
     fun setGrain(grain: Grain) = updateLook { it.copy(params = it.params.copy(grain = grain)) }

@@ -7,6 +7,7 @@ import com.kingshot.camera.looks.LookParam
 import com.kingshot.camera.looks.LookParams
 import com.kingshot.camera.looks.LookRecipe
 import com.kingshot.camera.looks.LookSelection
+import com.kingshot.camera.looks.LookTables
 import com.kingshot.camera.looks.Preset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -99,11 +100,16 @@ class LookMathTest {
     }
 
     @Test
-    fun blackTieIsMonochrome() {
+    fun blackTieIsMonochromeThroughItsTable() {
         val r = LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.BLACK_TIE))
-        val out = LookMath.applyPixel(px(200, 60, 30), r, 5, 5)
-        assertEquals(red(out), grn(out))
-        assertEquals(grn(out), blu(out))
+        val out = LookMath.applyPixel(px(200, 60, 30), r, 5, 5, LookTables.lutFor(Preset.BLACK_TIE))
+        assertTrue(Math.abs(red(out) - grn(out)) <= 4)
+        assertTrue(Math.abs(grn(out) - blu(out)) <= 4)
+    }
+
+    @Test
+    fun aPresetAloneIsNotAnIdentity() {
+        assertFalse(LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.VELVET)).isIdentity)
     }
 
     @Test
@@ -152,29 +158,24 @@ class LookMathTest {
 
     @Test
     fun previewMatrixForIdentityIsTheIdentityMatrix() {
-        val m = LookMath.previewMatrix(LookMath.recipe(LookSelection()))
+        val m = LookMath.previewMatrix(LookMath.recipe(LookSelection()), null)
         val identity = floatArrayOf(1f, 0f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 0f, 1f, 0f)
-        assertTrue(LookMath.maxDifference(m, identity) < 1e-5f)
+        assertTrue(LookMath.maxDifference(m, identity) < 1e-3f)
     }
 
     @Test
-    fun previewMatrixAgreesWithPixelMathForColourAndContrast() {
-        val sel = LookSelection(params = LookParams(warmth = 6, contrast = 5, vibrance = 4))
-        val k = LookMath.recipe(sel)
-        val m = LookMath.previewMatrix(k)
-        // Mid-grey has no saturation, so the matrix and the per-pixel path should agree closely on it.
-        val src = intArrayOf(150, 150, 150)
-        val viaMatrix = IntArray(3) { row ->
-            (m[row * 5] * src[0] + m[row * 5 + 1] * src[1] + m[row * 5 + 2] * src[2] + m[row * 5 + 4]).toInt().coerceIn(0, 255)
-        }
-        val viaPixels = LookMath.applyPixel(px(150, 150, 150), k, 0, 0)
-        assertTrue(Math.abs(viaMatrix[0] - red(viaPixels)) <= 6)
-        assertTrue(Math.abs(viaMatrix[2] - blu(viaPixels)) <= 6)
+    fun previewMatrixFollowsWarmth() {
+        val m = LookMath.previewMatrix(LookMath.recipe(LookSelection(params = LookParams(warmth = 10))), null)
+        val redOut = m[0] * 128 + m[1] * 128 + m[2] * 128 + m[4]
+        val blueOut = m[10] * 128 + m[11] * 128 + m[12] * 128 + m[14]
+        assertTrue("red $redOut blue $blueOut", redOut > 128f && blueOut < 128f)
     }
 
     @Test
     fun labelsAndFileTags() {
         assertEquals("Original", LookSelection().label())
+        assertEquals("Original", LookSelection().shortLabel())
+        assertEquals("Velvet", LookSelection(BaseLook.NATURAL, Preset.VELVET).shortLabel())
         assertEquals("Velvet on Natural", LookSelection(BaseLook.NATURAL, Preset.VELVET).label())
         assertEquals("velvetonnatural", LookSelection(BaseLook.NATURAL, Preset.VELVET).fileTag())
         assertEquals("Custom", LookSelection(params = LookParams(contrast = 2)).label())

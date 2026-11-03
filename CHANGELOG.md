@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- v0.7.0: Looks reworked. Swipe left or right on the viewfinder to switch presets (Original, Editorial, Velvet, Classic, Digi, Black Tie, Minimal); the look name sits at the top and opens the adjust panel; the bottom-bar Looks button is gone. Presets are now designed 33x33x33 colour tables built in OKLab (S-curve, per-hue colour and hue shifts, split-toning, gamut mapping) instead of slider offsets. Viewfinder preview is a matrix fitted to the real pipeline.
 - v0.6.0: brightness slider on the right edge of the viewfinder replaces the EV button; Looks panel modelled on Pixel 11 Camera Looks (Original/Natural/Shadows/Vanilla, six presets, Contrast/Highlights/Shadows/Vibrance/Tint/Warmth, Sharpness, Grain, "Always use selected look"). A look is rendered to a paired copy; the original is untouched. ADR 0008 lists what matches Pixel and what cannot.
 - Release workflow can attach to an existing release page and be run by hand with a tag (v0.5.0 was published this way).
 - v0.5.0: in-app "Check for updates" (Settings, Updates) with checksum and signing-key checks; signed GitHub Releases via tag-triggered workflow (docs/RELEASING.md, ADR 0007). New permissions INTERNET and REQUEST_INSTALL_PACKAGES, used only by that check.

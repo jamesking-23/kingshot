@@ -13,8 +13,8 @@ android {
         applicationId = "com.kingshot.camera" // placeholder until the name check (docs/ROADMAP.md)
         minSdk = 34
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     // Release builds are signed with the project key (release/kingshot.p12, protected by the KS_PASSWORD secret) so that in-app updates
