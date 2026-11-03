@@ -159,8 +159,13 @@ private fun ParamSlider(param: LookParam, value: Int, onChange: (Int) -> Unit) {
             drawLine(Color.White, Offset(neutralX, cy - 7.dp.toPx()), Offset(neutralX, cy + 7.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
             drawCircle(if (changed) Palette.Accent else Color.White, 11.dp.toPx(), Offset(thumbX, cy))
         }
+        val valueText = when {
+            param == LookParam.SHARPNESS -> "$value"
+            value > 0 -> "+$value"
+            else -> "$value"
+        }
         BasicText(
-            if (param == LookParam.SHARPNESS) "$value" else if (value > 0) "+$value" else "$value",
+            valueText,
             Modifier.width(44.dp).padding(start = 8.dp),
             style = TextStyle(color = if (changed) Palette.Accent else Palette.Muted, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         )

@@ -3,6 +3,7 @@ package com.kingshot.camera.ui
 import android.graphics.Bitmap
 import android.net.Uri
 import com.kingshot.camera.capture.FlashMode
+import com.kingshot.camera.looks.LookSelection
 import com.kingshot.camera.update.UpdateUi
 
 data class PhotoItem(val name: String, val uri: Uri)

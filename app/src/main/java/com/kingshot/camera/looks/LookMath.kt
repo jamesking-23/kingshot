@@ -103,8 +103,10 @@ data class LookRecipe(
 ) {
     /** True when the recipe would leave every pixel unchanged, so no copy is made. */
     val isIdentity: Boolean
-        get() = contrast == 0f && highlights == 0f && shadows == 0f && vibrance == 0f && tint == 0f && warmth == 0f &&
-            sharpness == NEUTRAL_SHARPNESS && grain == 0f && fade == 0f && !mono
+        get() {
+            val flat = listOf(contrast, highlights, shadows, vibrance, tint, warmth, grain, fade).all { it == 0f }
+            return flat && sharpness == NEUTRAL_SHARPNESS && !mono
+        }
 
     companion object {
         const val NEUTRAL_SHARPNESS = 10f
