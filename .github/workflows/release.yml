@@ -1,10 +1,17 @@
 name: Release
 
-# Publishes a signed APK as a GitHub Release when a version tag is pushed (git tag v0.5.0 && git push origin v0.5.0).
+# Publishes a signed APK as a GitHub Release when a version tag is pushed (git tag v0.5.0 && git push origin v0.5.0),
+# or when run by hand from the Actions tab with the tag to build ("Run workflow", type the tag, e.g. v0.5.0).
+# If the release page already exists (for example created in the web UI), the files are attached to it.
 # Needs the repository secret KS_PASSWORD (see docs/RELEASING.md).
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build and publish, e.g. v0.5.0'
+        required: true
 
 permissions:
   contents: write
@@ -14,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-java@v5
         with:
@@ -32,11 +41,13 @@ jobs:
           fi
 
       - name: Tag must match versionName
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           V=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           echo "VERSION=$V" >> "$GITHUB_ENV"
-          if [ "v$V" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match versionName $V in app/build.gradle.kts"
+          if [ "v$V" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match versionName $V in app/build.gradle.kts"
             exit 1
           fi
 
@@ -62,13 +73,19 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           {
             echo "KingShot $VERSION"
             echo
             echo "Install: download KingShot-$VERSION.apk below, or in the app open Settings, Updates, Check for updates."
             echo "Checksum: KingShot-$VERSION.apk.sha256 (the app verifies it before installing)."
-            echo "Built from commit $GITHUB_SHA. See CHANGELOG.md for what changed."
+            echo "Built from commit $(git rev-parse HEAD). See CHANGELOG.md for what changed."
             echo "Not yet verified on every device; see docs/VALIDATION_LOG.md."
           } > notes.md
-          gh release create "$GITHUB_REF_NAME" "KingShot-$VERSION.apk" "KingShot-$VERSION.apk.sha256" --title "KingShot $VERSION" --notes-file notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "KingShot-$VERSION.apk" "KingShot-$VERSION.apk.sha256" --clobber
+            gh release edit "$TAG" --title "KingShot $VERSION" --notes-file notes.md --latest
+          else
+            gh release create "$TAG" "KingShot-$VERSION.apk" "KingShot-$VERSION.apk.sha256" --title "KingShot $VERSION" --notes-file notes.md
+          fi
