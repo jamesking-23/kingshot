@@ -10,15 +10,18 @@ enum class BaseLook(val label: String) {
     VANILLA("Vanilla")
 }
 
-/** Creative presets that sit on top of a base look. KingShot's colour recipes only; Google's LUTs are not public. */
+/** The nine classic iPhone-style filters, rebuilt as Lightroom-style recipes (see [LookTables]). Approximations, not Apple's values. */
 enum class Preset(val label: String) {
     NONE("None"),
-    EDITORIAL("Editorial"),
-    VELVET("Velvet"),
-    CLASSIC("Classic"),
-    DIGI("Digi"),
-    BLACK_TIE("Black Tie"),
-    MINIMAL("Minimal")
+    VIVID("Vivid"),
+    VIVID_WARM("Vivid Warm"),
+    VIVID_COOL("Vivid Cool"),
+    DRAMATIC("Dramatic"),
+    DRAMATIC_WARM("Dramatic Warm"),
+    DRAMATIC_COOL("Dramatic Cool"),
+    MONO("Mono"),
+    SILVERTONE("Silvertone"),
+    NOIR("Noir")
 }
 
 enum class Grain(val label: String, val amount: Float) {
@@ -76,7 +79,7 @@ data class LookParams(
 }
 
 data class LookSelection(val base: BaseLook = BaseLook.ORIGINAL, val preset: Preset = Preset.NONE, val params: LookParams = LookParams()) {
-    /** Short human label for logs and file names, e.g. "Velvet on Natural" or "Original". */
+    /** Short human label for logs and file names, e.g. "Vivid Warm on Natural" or "Original". */
     fun label(): String = when {
         preset != Preset.NONE -> "${preset.label} on ${base.label}"
         !params.isDefault && base == BaseLook.ORIGINAL -> "Custom"
@@ -101,7 +104,9 @@ data class LookRecipe(
     val warmth: Float,
     val sharpness: Float,
     val grain: Float,
-    val preset: Preset
+    val preset: Preset,
+    val texture: Float,
+    val clarity: Float
 ) {
     /** True when the recipe would leave every pixel unchanged, so no copy is made. */
     val isIdentity: Boolean
@@ -131,12 +136,6 @@ object LookMath {
         BaseLook.VANILLA -> Delta(contrast = -3, highlights = -2, shadows = 2, vibrance = -1, sharpness = -2)
     }
 
-    /** Film-like grain that comes with a preset, on top of the Grain control. */
-    private fun presetGrain(preset: Preset): Grain = when (preset) {
-        Preset.CLASSIC, Preset.BLACK_TIE -> Grain.WEAK
-        else -> Grain.NONE
-    }
-
     /** Base look and the user's sliders add together (clamped to each range); the preset adds its own colour table and grain. */
     fun recipe(sel: LookSelection): LookRecipe {
         val b = delta(sel.base)
@@ -150,8 +149,10 @@ object LookMath {
             tint = p.tint.toFloat(),
             warmth = p.warmth.toFloat(),
             sharpness = sum(LookParam.SHARPNESS, p.sharpness, b.sharpness),
-            grain = maxOf(p.grain.amount, presetGrain(sel.preset).amount),
-            preset = sel.preset
+            grain = p.grain.amount,
+            preset = sel.preset,
+            texture = (LookTables.recipeOf(sel.preset)?.texture ?: 0.0).toFloat(),
+            clarity = (LookTables.recipeOf(sel.preset)?.clarity ?: 0.0).toFloat()
         )
     }
 
@@ -241,6 +242,9 @@ object LookMath {
 
     /** Unsharp-mask strength for a Sharpness setting: 10 is neutral, above sharpens, below softens. */
     fun detailAmount(sharpness: Float): Float = ((sharpness - LookRecipe.NEUTRAL_SHARPNESS) / 5f * 0.8f).coerceIn(-1f, 1f)
+
+    /** Sharpness slider plus the preset's Texture, as one unsharp-mask amount. */
+    fun detailAmount(k: LookRecipe): Float = (detailAmount(k.sharpness) + k.texture / 100f * TEXTURE_GAIN).coerceIn(-1f, 1f)
 
     /**
      * Sharpen (positive [amount]) or soften (negative) one row using a 3x3 box average of the rows above and below.
@@ -339,6 +343,7 @@ object LookMath {
     /** Largest absolute difference between two matrices; used by tests. */
     fun maxDifference(a: FloatArray, b: FloatArray): Float = a.indices.maxOf { abs(a[it] - b[it]) }
 
+    private const val TEXTURE_GAIN = 1.2f
     private val SHIFTS = intArrayOf(16, 8, 0)
     private const val WARMTH_GAIN = 0.10f
     private const val TINT_GAIN = 0.08f

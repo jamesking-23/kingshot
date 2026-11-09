@@ -43,7 +43,10 @@ class LookMathTest {
         }
         assertEquals(listOf("None", "Weak", "Moderate", "Strong"), Grain.values().map { it.label })
         assertEquals(listOf("Original", "Natural", "Shadows", "Vanilla"), BaseLook.values().map { it.label })
-        assertEquals(listOf("None", "Editorial", "Velvet", "Classic", "Digi", "Black Tie", "Minimal"), Preset.values().map { it.label })
+        assertEquals(
+            listOf("None", "Vivid", "Vivid Warm", "Vivid Cool", "Dramatic", "Dramatic Warm", "Dramatic Cool", "Mono", "Silvertone", "Noir"),
+            Preset.values().map { it.label }
+        )
     }
 
     @Test
@@ -56,17 +59,24 @@ class LookMathTest {
 
     @Test
     fun layersAddAndStayInRange() {
-        val sel = LookSelection(BaseLook.SHADOWS, Preset.DIGI, LookParams(contrast = 9))
+        val sel = LookSelection(BaseLook.SHADOWS, Preset.VIVID, LookParams(contrast = 9))
         val r = LookMath.recipe(sel)
-        assertEquals(10f, r.contrast, 0f) // 9 + 2 + 3 clamps to 10
+        assertEquals(10f, r.contrast, 0f) // 9 + 2 clamps to 10
         assertEquals(-4f, r.shadows, 0f)
     }
 
     @Test
-    fun grainTakesTheStrongestSource() {
-        val r = LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.CLASSIC, LookParams(grain = Grain.STRONG)))
-        assertEquals(Grain.STRONG.amount, r.grain, 0f)
-        assertEquals(Grain.WEAK.amount, LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.CLASSIC)).grain, 0f)
+    fun grainComesOnlyFromTheGrainControl() {
+        assertEquals(Grain.STRONG.amount, LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.NOIR, LookParams(grain = Grain.STRONG))).grain, 0f)
+        assertEquals(0f, LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.NOIR)).grain, 0f)
+    }
+
+    @Test
+    fun presetsBringTheirOwnTextureAndClarity() {
+        val noir = LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.NOIR))
+        assertEquals(5f, noir.texture, 0f)
+        assertEquals(12f, noir.clarity, 0f)
+        assertEquals(0f, LookMath.recipe(LookSelection()).clarity, 0f)
     }
 
     @Test
@@ -100,16 +110,16 @@ class LookMathTest {
     }
 
     @Test
-    fun blackTieIsMonochromeThroughItsTable() {
-        val r = LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.BLACK_TIE))
-        val out = LookMath.applyPixel(px(200, 60, 30), r, 5, 5, LookTables.lutFor(Preset.BLACK_TIE))
+    fun monoIsMonochromeThroughItsTable() {
+        val r = LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.MONO))
+        val out = LookMath.applyPixel(px(200, 60, 30), r, 5, 5, LookTables.lutFor(Preset.MONO))
         assertTrue(Math.abs(red(out) - grn(out)) <= 4)
         assertTrue(Math.abs(grn(out) - blu(out)) <= 4)
     }
 
     @Test
     fun aPresetAloneIsNotAnIdentity() {
-        assertFalse(LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.VELVET)).isIdentity)
+        assertFalse(LookMath.recipe(LookSelection(BaseLook.ORIGINAL, Preset.VIVID_WARM)).isIdentity)
     }
 
     @Test
@@ -175,9 +185,9 @@ class LookMathTest {
     fun labelsAndFileTags() {
         assertEquals("Original", LookSelection().label())
         assertEquals("Original", LookSelection().shortLabel())
-        assertEquals("Velvet", LookSelection(BaseLook.NATURAL, Preset.VELVET).shortLabel())
-        assertEquals("Velvet on Natural", LookSelection(BaseLook.NATURAL, Preset.VELVET).label())
-        assertEquals("velvetonnatural", LookSelection(BaseLook.NATURAL, Preset.VELVET).fileTag())
+        assertEquals("Vivid Warm", LookSelection(BaseLook.NATURAL, Preset.VIVID_WARM).shortLabel())
+        assertEquals("Vivid Warm on Natural", LookSelection(BaseLook.NATURAL, Preset.VIVID_WARM).label())
+        assertEquals("vividwarmonnatural", LookSelection(BaseLook.NATURAL, Preset.VIVID_WARM).fileTag())
         assertEquals("Custom", LookSelection(params = LookParams(contrast = 2)).label())
         assertFalse(LookRecipe.NEUTRAL_SHARPNESS == 0f)
     }

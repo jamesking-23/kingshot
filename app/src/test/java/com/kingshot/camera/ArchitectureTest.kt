@@ -50,7 +50,7 @@ class ArchitectureTest {
             "diagnostics/CapabilityReport.kt", "diagnostics/CaptureLog.kt", "diagnostics/ReceiptSummary.kt",
             "capture/ControlPlanner.kt", "capture/MeteringMath.kt", "capture/LevelMath.kt", "capture/Countdown.kt",
             "capture/LowLightAdvisor.kt", "capture/OpenGate.kt", "media/PairNaming.kt", "update/UpdatePolicy.kt", "update/UpdateUi.kt",
-            "looks/LookMath.kt", "looks/LookTables.kt"
+            "looks/LookMath.kt", "looks/LookTables.kt", "looks/LocalContrast.kt"
         ).map { File(root, it) }
         val offenders = pure.filter { f -> f.readLines().any { it.startsWith("import android.") } }.map { it.name }
         assertTrue("Android imports in pure core: $offenders", offenders.isEmpty())

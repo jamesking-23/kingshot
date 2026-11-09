@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- v0.8.0: the six invented presets are replaced by the nine iPhone-style filters from the owner's preset sheet: Vivid, Vivid Warm, Vivid Cool, Dramatic, Dramatic Warm, Dramatic Cool, Mono, Silvertone, Noir. Each is a Lightroom-style recipe (exposure, contrast, highlights, shadows, whites, blacks, texture, clarity, vibrance, saturation, temperature, tint, three colour-grading wheels, balance) baked into a 33x33x33 table; texture and clarity run as a local-contrast step. No preset adds grain any more; Grain is only the control. Old saved presets fall back to None.
 - v0.7.1: app icon without the crown; the lens ring is centred. Self-check on v0.7.0 (Pixel 7) passed every graded check.
 - v0.7.0: Looks reworked. Swipe left or right on the viewfinder to switch presets (Original, Editorial, Velvet, Classic, Digi, Black Tie, Minimal); the look name sits at the top and opens the adjust panel; the bottom-bar Looks button is gone. Presets are now designed 33x33x33 colour tables built in OKLab (S-curve, per-hue colour and hue shifts, split-toning, gamut mapping) instead of slider offsets. Viewfinder preview is a matrix fitted to the real pipeline.
 - v0.6.0: brightness slider on the right edge of the viewfinder replaces the EV button; Looks panel modelled on Pixel 11 Camera Looks (Original/Natural/Shadows/Vanilla, six presets, Contrast/Highlights/Shadows/Vibrance/Tint/Warmth, Sharpness, Grain, "Always use selected look"). A look is rendered to a paired copy; the original is untouched. ADR 0008 lists what matches Pixel and what cannot.

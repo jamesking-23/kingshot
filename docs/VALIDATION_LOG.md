@@ -58,3 +58,8 @@ Raw bundles are kept by the owner; the capability report is stored as a fixture 
 - DV-L4: swipe the viewfinder left and right: the name at the top changes through Original, Editorial, Velvet, Classic, Digi, Black Tie, Minimal; a small haptic tick on each change; tap still focuses.
 - DV-L5: take one photo per preset and compare the saved copies on the phone's screen; note any look that is too strong, banded, or has odd skin tones (send the photos).
 - DV-L6: tap a look name: the adjust panel opens and the viewfinder tint follows the sliders.
+
+## Pending device checks for v0.8.0 (not yet run)
+- DV-L7: swipe through None and the nine presets; each name is shown at the top and the viewfinder tint changes (Mono, Silvertone, Noir go grey).
+- DV-L8: one photo per preset; compare Vivid / Vivid Warm / Vivid Cool and the Dramatic trio on the same scene, and Mono / Silvertone / Noir. Note any that look too dark on deep skin (Dramatic and Noir deepen blacks on purpose).
+- DV-L9: render time for Noir and Silvertone (they add the clarity pass) on a full-size photo.

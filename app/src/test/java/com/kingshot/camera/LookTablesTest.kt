@@ -1,12 +1,11 @@
 package com.kingshot.camera
 
 import com.kingshot.camera.looks.BaseLook
-import com.kingshot.camera.looks.ColourRecipe
+import com.kingshot.camera.looks.FilterRecipe
 import com.kingshot.camera.looks.LookMath
 import com.kingshot.camera.looks.LookSelection
 import com.kingshot.camera.looks.LookTables
 import com.kingshot.camera.looks.Preset
-import com.kingshot.camera.looks.Tint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -31,16 +30,39 @@ class LookTablesTest {
         return out
     }
 
+    private fun greyAt(p: Preset, level: Double) = transform(p, level, level, level)
+
     @Test
     fun noneHasNoTableAndEveryPresetHasOne() {
         assertNull(LookTables.recipeOf(Preset.NONE))
         assertNull(LookTables.lutFor(Preset.NONE))
         presets.forEach { assertNotNull(LookTables.recipeOf(it)) }
+        assertEquals(9, presets.size)
+    }
+
+    @Test
+    fun recipesCarryTheValuesFromThePresetSheet() {
+        val vivid = LookTables.recipeOf(Preset.VIVID)!!
+        assertEquals(0.10, vivid.exposure, 0.0)
+        assertEquals(12.0, vivid.contrast, 0.0)
+        assertEquals(18.0, vivid.vibrance, 0.0)
+        val warm = LookTables.recipeOf(Preset.VIVID_WARM)!!
+        assertEquals(7.0, warm.temperature, 0.0)
+        assertEquals(10.0, warm.balance, 0.0)
+        assertEquals(10.0, warm.highlightGrade!!.saturation, 0.0)
+        val noir = LookTables.recipeOf(Preset.NOIR)!!
+        assertEquals(40.0, noir.contrast, 0.0)
+        assertEquals(-35.0, noir.blacks, 0.0)
+        assertEquals(-100.0, noir.saturation, 0.0)
+        assertEquals(215.0, LookTables.recipeOf(Preset.SILVERTONE)!!.shadowGrade!!.hue, 0.0)
+        val cool = LookTables.recipeOf(Preset.DRAMATIC_COOL)!!
+        assertEquals(-8.0, cool.temperature, 0.0)
+        assertEquals(-12.0, cool.balance, 0.0)
     }
 
     @Test
     fun aNeutralRecipeLeavesTheGreyAxisAlone() {
-        val neutral = ColourRecipe(0.0, 5.0, 0.5, 0.0, 0.0, 1.0, emptyList(), Tint(0.0, 0.0), Tint(0.0, 0.0))
+        val neutral = FilterRecipe(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, null, null, null, 0.0)
         val out = DoubleArray(3)
         for (i in 0..16) {
             val v = i / 16.0
@@ -80,62 +102,61 @@ class LookTablesTest {
     }
 
     @Test
-    fun editorialKeepsPureBlackAndWhite() {
-        val t = lut(Preset.EDITORIAL)
-        val top = t.size - 1
-        for (c in 0..2) {
-            assertTrue(t.node(0, 0, 0, c) < 0.004f)
-            assertTrue(t.node(top, top, top, c) > 0.996f)
-        }
-    }
-
-    @Test
-    fun classicFadesTheBlacks() {
-        val t = lut(Preset.CLASSIC)
-        for (c in 0..2) assertTrue("channel $c = ${t.node(0, 0, 0, c)}", t.node(0, 0, 0, c) > 0.03f)
-    }
-
-    @Test
-    fun blackTieStaysNeutralEverywhere() {
-        val t = lut(Preset.BLACK_TIE)
-        for (r in 0 until t.size step 2) {
-            for (g in 0 until t.size step 2) {
-                for (b in 0 until t.size step 2) {
-                    val tr = t.node(r, g, b, 0)
-                    val tg = t.node(r, g, b, 1)
-                    val tb = t.node(r, g, b, 2)
-                    assertTrue("[$r,$g,$b]", Math.abs(tr - tg) < 0.03f && Math.abs(tg - tb) < 0.03f)
+    fun monoIsExactlyNeutralAndSilvertoneAndNoirOnlyFaintlyToned() {
+        for ((p, limit) in listOf(Preset.MONO to 0.004f, Preset.SILVERTONE to 0.03f, Preset.NOIR to 0.03f)) {
+            val t = lut(p)
+            for (r in 0 until t.size step 2) {
+                for (g in 0 until t.size step 2) {
+                    for (b in 0 until t.size step 2) {
+                        val tr = t.node(r, g, b, 0)
+                        val tg = t.node(r, g, b, 1)
+                        val tb = t.node(r, g, b, 2)
+                        assertTrue("$p [$r,$g,$b]", Math.abs(tr - tg) < limit && Math.abs(tg - tb) < limit)
+                    }
                 }
             }
         }
     }
 
     @Test
-    fun digiAddsColourAndMinimalRemovesIt() {
-        val digi = transform(Preset.DIGI, 0.4, 0.45, 0.65)
-        assertTrue(sat(digi[0], digi[1], digi[2]) > sat(0.4, 0.45, 0.65) + 0.05)
-        val minimal = transform(Preset.MINIMAL, 0.8, 0.3, 0.2)
-        assertTrue(sat(minimal[0], minimal[1], minimal[2]) < sat(0.8, 0.3, 0.2) - 0.1)
+    fun warmFiltersTurnGreyWarmAndCoolFiltersTurnItCool() {
+        for (p in listOf(Preset.VIVID_WARM, Preset.DRAMATIC_WARM)) {
+            val o = greyAt(p, 0.5)
+            assertTrue("$p ${o.toList()}", o[0] > o[2] + 0.05)
+        }
+        for (p in listOf(Preset.VIVID_COOL, Preset.DRAMATIC_COOL)) {
+            val o = greyAt(p, 0.5)
+            assertTrue("$p ${o.toList()}", o[2] > o[0] + 0.05)
+        }
+        val plain = greyAt(Preset.VIVID, 0.5)
+        assertTrue(Math.abs(plain[0] - plain[2]) < 0.05)
     }
 
     @Test
-    fun skinTonesStayWarmAndKeepTheirBrightnessInTheGentlePresets() {
-        val skin = doubleArrayOf(0.87, 0.68, 0.55)
-        val before = luma(skin[0].toFloat(), skin[1].toFloat(), skin[2].toFloat())
-        for (p in presets.filter { it != Preset.BLACK_TIE }) {
-            val o = transform(p, skin[0], skin[1], skin[2])
-            assertTrue("$p stays warm: ${o.toList()}", o[0] > o[1] && o[1] > o[2])
-        }
-        for (p in listOf(Preset.EDITORIAL, Preset.VELVET, Preset.MINIMAL)) {
-            val o = transform(p, skin[0], skin[1], skin[2])
-            val after = luma(o[0].toFloat(), o[1].toFloat(), o[2].toFloat())
-            assertTrue("$p brightness moved ${after - before}", Math.abs(after - before) < 0.12f)
-        }
+    fun vividAddsColourToMutedTones() {
+        val o = transform(Preset.VIVID, 0.4, 0.45, 0.65)
+        assertTrue(sat(o[0], o[1], o[2]) > sat(0.4, 0.45, 0.65) + 0.02)
+    }
+
+    @Test
+    fun dramaticHoldsHighlightsAndDeepensShadowsComparedWithVivid() {
+        val dramaticHigh = greyAt(Preset.DRAMATIC, 0.95)
+        val vividHigh = greyAt(Preset.VIVID, 0.95)
+        assertTrue(dramaticHigh[1] < vividHigh[1] - 0.02)
+        assertTrue(greyAt(Preset.DRAMATIC, 0.2)[1] < greyAt(Preset.VIVID, 0.2)[1] - 0.05)
+    }
+
+    @Test
+    fun noirIsTheHardestBlackAndWhite() {
+        val noirBlack = greyAt(Preset.NOIR, 0.0)
+        for (c in 0..2) assertTrue(noirBlack[c] < 0.01)
+        assertTrue(greyAt(Preset.NOIR, 0.2)[1] < greyAt(Preset.MONO, 0.2)[1] - 0.08)
+        assertTrue(greyAt(Preset.SILVERTONE, 0.2)[1] < greyAt(Preset.MONO, 0.2)[1])
     }
 
     @Test
     fun samplingAtAGridNodeReturnsThatNode() {
-        val t = lut(Preset.VELVET)
+        val t = lut(Preset.VIVID_WARM)
         t.sample(10 / 32f, 20 / 32f, 5 / 32f)
         assertEquals(t.node(10, 20, 5, 0), t.r, 1e-3f)
         assertEquals(t.node(10, 20, 5, 1), t.g, 1e-3f)
@@ -165,7 +186,7 @@ class LookTablesTest {
                 }
             }
             val rms = Math.sqrt(sum / n)
-            assertTrue("$p preview rms $rms", rms < 0.2)
+            assertTrue("$p preview rms $rms", rms < 0.12)
         }
     }
 }

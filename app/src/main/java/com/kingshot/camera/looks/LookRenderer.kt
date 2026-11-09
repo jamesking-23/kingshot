@@ -69,11 +69,13 @@ class LookRenderer(private val resolver: ContentResolver, private val saver: Med
         }
     }
 
-    /** Sharpness in a rolling 3-row window, then tone and colour per pixel, written back into the same bitmap. */
+    /** Clarity grid (if the look has Clarity), then sharpness and texture in a rolling 3-row window, then tone and colour per pixel. */
     private fun process(bitmap: Bitmap, recipe: LookRecipe) {
         val w = bitmap.width
         val h = bitmap.height
-        val amount = LookMath.detailAmount(recipe.sharpness)
+        val amount = LookMath.detailAmount(recipe)
+        val clarity = LocalContrast.amountFor(recipe.clarity)
+        val local = if (clarity != 0f) buildLocal(bitmap) else null
         var prev = IntArray(w)
         var cur = IntArray(w)
         var next = IntArray(w)
@@ -85,13 +87,28 @@ class LookRenderer(private val resolver: ContentResolver, private val saver: Med
         for (y in 0 until h) {
             if (y + 1 < h) bitmap.getPixels(next, 0, w, 0, y + 1, w, 1) else System.arraycopy(cur, 0, next, 0, w)
             LookMath.detailRow(prev, cur, next, out, w, amount)
-            for (x in 0 until w) out[x] = LookMath.applyPixel(out[x], recipe, x, y, lut, scratch)
+            for (x in 0 until w) {
+                val local0 = if (local != null) LocalContrast.apply(out[x], local.blurAt(x, y), clarity) else out[x]
+                out[x] = LookMath.applyPixel(local0, recipe, x, y, lut, scratch)
+            }
             bitmap.setPixels(out, 0, w, 0, y, w, 1)
             val recycled = prev
             prev = cur
             cur = next
             next = recycled
         }
+    }
+
+    private fun buildLocal(bitmap: Bitmap): LocalContrast {
+        val w = bitmap.width
+        val local = LocalContrast(w, bitmap.height)
+        val row = IntArray(w)
+        for (y in 0 until bitmap.height) {
+            bitmap.getPixels(row, 0, w, 0, y, w, 1)
+            local.addRow(y, row)
+        }
+        local.finish()
+        return local
     }
 
     private fun copyOrientation(uri: Uri, orientation: String?): String {
